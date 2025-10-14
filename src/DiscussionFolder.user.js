@@ -7,6 +7,7 @@
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
 // @icon         https://cdn.vsassets.io/content/icons/favicon.ico
 // @grant        none
+// @license      Apache License 2.0
 // ==/UserScript==
 
 // 工具盤預設打開
