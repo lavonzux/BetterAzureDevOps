@@ -45,6 +45,24 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 
 - 由於 Azure DevOps 是用前端框架寫的，許多元素會即時動態的渲染，因此尚無法做到頁面載入時自動執行更新按鈕的功能，切換畫面時，腳本的部分功能、按鈕可能會消失。
 
+## License
+
+```
+Copyright 2025 Anthony.Mai(lavonzux@gmail.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
 ## Extras
 
 關於 tampermonkey 的安裝及使用請參考它們的 [官方文件](https://www.tampermonkey.net/)。
