@@ -1,21 +1,25 @@
 // ==UserScript==
-// @name         評論區摺疊小工具
+// @name         DisscussionFolder
+// @name:zh      評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      v0.9.8-alpha
-// @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
+// @version      0.9.8-RC
+// @description  Add a tool tray in work item page for folding / expanding comments.
+// @description:zh 在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
 // @icon         https://cdn.vsassets.io/content/icons/favicon.ico
 // @grant        none
 // @license      Apache License 2.0
+// @downloadURL https://update.greasyfork.org/scripts/552528/%E8%A9%95%E8%AB%96%E5%8D%80%E6%91%BA%E7%96%8A%E5%B0%8F%E5%B7%A5%E5%85%B7.user.js
+// @updateURL https://update.greasyfork.org/scripts/552528/%E8%A9%95%E8%AB%96%E5%8D%80%E6%91%BA%E7%96%8A%E5%B0%8F%E5%B7%A5%E5%85%B7.meta.js
 // ==/UserScript==
 
 // 工具盤預設打開
 const TRAY_OPEN_BY_DEFAULT = true;
 // 工具盤背景顏色
-const TRAY_BACKGROUND_COLOR = `#adfe`;
+const TRAY_BACKGROUND_COLOR = '#adfe';
 // 工具箱開關按鈕顏色
-const TRAY_TOGGLE_COLOR = `#f9a`;
+const TRAY_TOGGLE_COLOR = '#f9a';
 // 工具箱按鈕文字顏色
 const TOOL_BUTTON_TEXT_COLOR = 'white';
 // 工具箱按鈕背景顏色
@@ -30,12 +34,14 @@ const REACTED_COLLAPSE_BTN_CONTENT = '↕️';
 
 // 版面控制開關相關設定
 // 切換速度
-const SWITCH_TRANSITION_DURATION = `0.2s`;
+const SWITCH_TRANSITION_DURATION = '0.2s';
 // 開啟時背景顏色
-const SWITCH_ON_BACKGROUND_COLOR = `2196F3`;
+const SWITCH_ON_BACKGROUND_COLOR = '#0078d4';
 // 關閉時背景顏色
-const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
+const SWITCH_OFF_BACKGROUND_COLOR = '#aaaa';
 
+// Switch文字顏色
+const SWITCH_LABEL_TEXT_COLOR = '#000';
 
 
 (function() {
@@ -54,7 +60,7 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
             --knob-gap: 4px;
         }
 
-        /* CSS classes for my toolbox tray */
+        /* CSS classes for my tooltray */
         .my-tray {
             background-color: ${TRAY_BACKGROUND_COLOR};
             position: absolute;
@@ -155,8 +161,10 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
           grid-column-start: 1;
           grid-column-end: 3;
           display: grid;
-          grid-template-columns: repeat(8, 1fr);
+          grid-template-columns: repeat(3, 2fr 1fr);
           gap: 0.25rem;
+          align-items: center;
+          padding-right: 2rem;
         }
 
 
@@ -188,22 +196,24 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
         }
 
         .my-tooltip{
-          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: end;
           height: 100%;
         }
         .my-tooltip .my-tooltiptext {
           visibility: hidden;
-          width: 150px;
+          width: calc(var(--tray-width) * 0.5);
           background-color: #000c;
           color: #fff;
           text-align: center;
           border-radius: 6px;
-          padding: 5px 0;
+          padding: 5px;
           position: absolute;
           z-index: 1;
-          bottom: 150%;
-          left: 50%;
-          margin-left: -75px;
+          bottom: calc(var(--tray-height) + 1rem);
+          left: 0;
+          transform: translateX(calc(var(--tray-width) * 0.25));
         }
         .my-tooltip:hover .my-tooltiptext {
           visibility: visible;
@@ -314,14 +324,19 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
         }
 
         input:checked + .my-slider {
-          background-color: #2196F3;
+          background-color: ${SWITCH_ON_BACKGROUND_COLOR};
         }
-        input:not(:checked) + .slider {
-          background-color: #f7581a;
+        input:not(:checked) + .my-slider {
+          background-color: ${SWITCH_OFF_BACKGROUND_COLOR};
         }
 
         input:checked + .my-slider:before {
           transform: translateX(calc(var(--switch-width) - var(--switch-height)));
+        }
+
+        .my-sw-label {
+          font-size: 1.2rem;
+          color: ${SWITCH_LABEL_TEXT_COLOR};
         }
     `;
     document.head.appendChild(style);
@@ -339,51 +354,21 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
         document.body.appendChild(tray);
         if (TRAY_OPEN_BY_DEFAULT) toggleTray(tray);
 
-        const trayToggle = document.createElement('div');
-        trayToggle.classList.add('my-tray-toggle');
-        trayToggle.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleTray(event.target.parentNode);
-        });
-        tray.appendChild(trayToggle);
+        tray.appendChild(createTrayToggle());
 
-        tray.appendChild(wrapIntoTrayItem(createRefreshButton(), TRAY_ITEM_TYPE.REFRESH_DIV));
-        tray.appendChild(wrapIntoTrayItem(createExpandAllButton()));
-        tray.appendChild(wrapIntoTrayItem(createShrinkAllButton()));
-        tray.appendChild(wrapIntoTrayItem(createExpandReactedButton()));
-        tray.appendChild(wrapIntoTrayItem(createShrinkReactedButton()));
+        tray.appendChild(createRefreshButton());
+        tray.appendChild(createExpandAllButton());
+        tray.appendChild(createShrinkAllButton());
+        tray.appendChild(createExpandReactedButton());
+        tray.appendChild(createShrinkReactedButton());
         tray.appendChild(createSearchTool());
 
 
-        // [Test] Create switches
-        const testSw = createSwitch((event) => {
-            const checked = event.target.checked;
-            switchWideLayout(checked);
-        });
-        const warppedSw = wrapIntoTooltip(testSw, '切換為左側寬版排版');
-        const switchDiv = createSwitchDiv([warppedSw]);
-        tray.appendChild(switchDiv);
+        // Switch tools
+        const layoutSwitch = createLayoutSwitch();
+        tray.appendChild(createSwitchTools([...layoutSwitch]));
 
     });
-
-    // Function universally used
-    function findCommentCards(type) {
-        // If discussion section or comment cards are null, early return
-        const discussionSection = document.querySelector('div.work-item-form-discussion div.work-item-form-collapsible-section-content');
-        if (!discussionSection) return[];
-        const commentCards = discussionSection.querySelectorAll('div.comment-item.displayed-comment');
-        if (commentCards.length <= 0) return[];
-
-        // Return all cards if no type specified
-        if (!type) return commentCards;
-
-        const groupByReacted = Object.groupBy(commentCards, card => card.querySelector('.reaction-statusbar-placeholder') !== null );
-        if (type === 'reacted') return groupByReacted.true;
-        if (type === 'notReacted') return groupByReacted.false;
-
-        // Fallback if given type is invalid
-        return commentCards;
-    }
 
     /**
      * Find comment cards and group them into two groups by given predicate
@@ -391,11 +376,15 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
     function findCommentCardsByPredicate(groupingPredicate = (_card) => true) {
         // If discussion section or comment cards are null, early return
         const discussionSection = document.querySelector('div.work-item-form-discussion div.work-item-form-collapsible-section-content');
-        if (!discussionSection) return[];
+        if (!discussionSection) return { true: [], false: [] };
         const commentCards = discussionSection.querySelectorAll('div.comment-item.displayed-comment');
-        if (commentCards.length <= 0) return[];
+        if (commentCards.length <= 0) return { true: [], false: [] };
 
-        return Object.groupBy(commentCards, (card) => groupingPredicate(card));
+        return {
+            true: [],  // Make sure that returned object have 
+            false: [], // both key(true/false) and value(empty array)
+            ...Object.groupBy(commentCards, (card) => groupingPredicate(card))
+        };
     }
 
 
@@ -432,114 +421,96 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
     };
 
 
-    // Functions for creating my elements
+    // Functions for creating each tooltray elements
 
+    function createTrayToggle() {
+        const trayToggle = document.createElement('div');
+        trayToggle.classList.add('my-tray-toggle');
+        trayToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleTray(event.target.parentNode);
+        });
+        return trayToggle;
+    }
     function createRefreshButton() {
-        const refreshButton = createToolButtonDiv(
+        const refreshButton = createToolButton(
             '🔃 更新摺疊按鈕狀態',
             function () {
-                event.stopPropagation();
                 const groupByReacted = findCommentCardsByPredicate(GROUPIND_PREDICATE.BY_REACTION_EXIST);
-                updateReactedCommentCards(groupByReacted.true);
-                updateNotReactedCommentCards(groupByReacted.false);
-            },
+                refreshCommentCards(groupByReacted.true, true);
+                refreshCommentCards(groupByReacted.false, false);
+            }
+        );
+        const inTooltip = wrapIntoTooltip(
+            refreshButton, 
             '更新評論卡片中摺疊按鈕的狀態，初次載入頁面時建議等完全載入後再按'
         );
-        refreshButton.classList.add('refresh');
-        return refreshButton;
-    }
-    function createShrinkAllButton() {
-        const btnDiv = createToolButtonDiv(
-            '📁 全部摺疊',
-            function () {
-                event.stopPropagation();
-                const allTrue = findCommentCardsByPredicate();
-                shrinkByCondition(allTrue);
-            },
-            '摺疊全部評論卡片'
-        );
-        return btnDiv;
+        return wrapIntoTrayItem(inTooltip, TRAY_ITEM_TYPE.REFRESH_DIV);
     }
     function createExpandAllButton() {
-        const btnDiv = createToolButtonDiv(
-            '📂 全部展開',
-            function () {
-                event.stopPropagation();
-                const allFalse = findCommentCardsByPredicate(() => false);
-                shrinkByCondition(allFalse);
-            },
-            '展開全部評論卡片'
-        );
-        return btnDiv;
+        const expandAllBtn = createToolButton('📂 全部展開', () => shrinkByCondition(findCommentCardsByPredicate(() => false)));
+        const inTooltip = wrapIntoTooltip(expandAllBtn, '展開全部評論卡片');
+        return wrapIntoTrayItem(inTooltip);
     }
-    function createShrinkReactedButton() {
-        const btnDiv = createToolButtonDiv(
-            '⏫ 關已回應',
-            function () {
-                event.stopPropagation();
-                const predicate = GROUPIND_PREDICATE.BY_REACTION_EXIST;
-                const groupedCommentCards = findCommentCardsByPredicate(predicate);
-                shrinkByCondition(groupedCommentCards);
-            },
-            '摺疊已反應的評論卡'
-        );
-        return btnDiv;
+    function createShrinkAllButton() {
+        const shrinkAllBtn = createToolButton('📁 全部摺疊', () => shrinkByCondition(findCommentCardsByPredicate()));
+        const inTooltip = wrapIntoTooltip(shrinkAllBtn, '摺疊全部評論卡片');
+        return wrapIntoTrayItem(inTooltip);
     }
     function createExpandReactedButton() {
-        const btnDiv = createToolButtonDiv(
+        const expandReactedBtn = createToolButton(
             '⏬ 開已回應',
-            function () {
-                event.stopPropagation();
+            () => {
                 const predicate = (card) => !(GROUPIND_PREDICATE.BY_REACTION_EXIST(card));
-                const groupedCommentCards = findCommentCardsByPredicate(predicate);
-                shrinkByCondition(groupedCommentCards);
-            },
-            '打開已反應的評論卡'
+                shrinkByCondition(findCommentCardsByPredicate(predicate));
+            }
         );
-        return btnDiv;
+        const inTooltip = wrapIntoTooltip(expandReactedBtn, '打開已反應的評論卡');
+        return wrapIntoTrayItem(inTooltip);
     }
-
+    function createShrinkReactedButton() {
+        const shrinkReactedBtn = createToolButton(
+            '⏫ 關已回應',
+            () => {
+                const predicate = GROUPIND_PREDICATE.BY_REACTION_EXIST;
+                shrinkByCondition(findCommentCardsByPredicate(predicate));
+            }
+        );
+        const inTooltip = wrapIntoTooltip(shrinkReactedBtn, '摺疊已反應的評論卡');
+        return wrapIntoTrayItem(inTooltip);
+    }
     function createSearchTool() {
-        const searchDiv = document.createElement('div');
-        searchDiv.classList.add('tray-item', 'search-div');
-
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = '輸入欲搜尋的文字';
         searchInput.classList.add('my-search-input');
-        const searchTextBoxWithTooltip = wrapIntoTooltip(
+        const searchInputInTooltip = wrapIntoTooltip(
             searchInput,
             '輸入欲搜尋的文字，會展開所有包含該文字的評論，並摺疊不包含該字串的評論。'
         );
 
-        const searchBtn = createToolButton('🔍 搜尋', function() {
-            event.stopPropagation();
-            const targetString = document.querySelector('div.my-tray .tray-item.search-div input.my-search-input').value;
-            const predicate = GROUPIND_PREDICATE.BY_STRING_IGNORE_CASE(targetString);
-            const groupedCommentCards = findCommentCardsByPredicate(predicate);
-            shrinkByCondition(groupedCommentCards);
-        });
+        const searchBtn = createToolButton(
+            '🔍 搜尋', 
+            () => {
+                const targetString = document.querySelector('div.my-tray .tray-item.search-div input.my-search-input').value;
+                const predicate = GROUPIND_PREDICATE.BY_STRING_IGNORE_CASE(targetString);
+                const groupedCommentCards = findCommentCardsByPredicate(predicate);
+                shrinkByCondition(groupedCommentCards);
+            }
+        );
 
-        searchDiv.appendChild(searchTextBoxWithTooltip);
-        searchDiv.appendChild(searchBtn);
+        return wrapIntoTrayItem([searchInputInTooltip, searchBtn], TRAY_ITEM_TYPE.SEARCH_DIV);
+    }
 
-        return searchDiv;
-    }
-    function createSwitchDiv(switches) {
-        const switchDiv = document.createElement('div');
-        switchDiv.classList.add('tray-item', 'switch-div');
-        switches.forEach(sw => {
-            switchDiv.appendChild(sw);
-        });
-        return switchDiv;
-    }
-    function createSwitch(switchCallback) {
+    // Functions for creating all switch tools
+    function createSwitch(id, switchEventCallback) {
         const label = document.createElement('label');
         label.classList.add('my-switch');
 
         const checkbox = document.createElement('input');
         checkbox.setAttribute("type", "checkbox");
-        checkbox.addEventListener('change', switchCallback);
+        checkbox.addEventListener('change', switchEventCallback);
+        checkbox.setAttribute('id', id);
 
         const slider = document.createElement('div');
         slider.classList.add('my-slider');
@@ -549,14 +520,29 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
 
         return label;
     }
+    function createLabelAndSwitchPair(switchId, labelText, labelTooltip, switchCallback) {
+        const label = document.createElement('label');
+        label.innerText = labelText;
+        label.classList.add('my-sw-label');
+        label.setAttribute('for', switchId);
+        const swLabelInTooltip = wrapIntoTooltip(label, labelTooltip);
+        const sw = createSwitch(switchId, switchCallback);
+        return [swLabelInTooltip, sw];
+    }
+    function createSwitchTools(switches) {
+        return wrapIntoTrayItem(switches, TRAY_ITEM_TYPE.SWITCH_DIV);
+    }
 
-    // Function for creating tool buttons
-    function createToolButtonDiv(btnText, btnCallback, tooltipText) {
-        return wrapIntoTooltip(
-            createToolButton(btnText, btnCallback),
-            tooltipText
+    function createLayoutSwitch() {
+        return createLabelAndSwitchPair(
+            'layoutSwitch',
+            '5:2排版', 
+            '調整排版，將左側常用的Description及Discussion放大。', 
+            event => switchWideLayout(event.target.checked)
         );
     }
+
+    // Function for creating tool buttons
     function createToolButton(text, callback) {
         const btn = document.createElement('button');
         btn.innerText = text;
@@ -565,37 +551,21 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
         btn.classList.add('my-tool-button');
         return btn;
     }
-    function createCollapseButton() {
+
+    // Function for create the fold/expand button in comment cards
+    function createCommentCardFoldButton(reacted = true) {
         const btnDiv = document.createElement('div');
         btnDiv.classList.add('my-expand-button-div');
 
         const btn = document.createElement('button');
-        btn.innerText = '↕️';
+        btn.innerText = reacted ? REACTED_COLLAPSE_BTN_CONTENT : NOT_REACTED_COLLAPSE_BTN_CONTENT;
         btn.classList.add('my-expand-button');
         btnDiv.appendChild(btn);
 
         return btnDiv;
     }
-    function createReactedCollapseButton(type) {
-        const btnDiv = document.createElement('div');
-        btnDiv.classList.add('my-expand-button-div');
-
-        const btn = document.createElement('button');
-        if (type && type === 'reacted') {
-            btn.innerText = REACTED_COLLAPSE_BTN_CONTENT;
-        } else {
-            btn.innerText = NOT_REACTED_COLLAPSE_BTN_CONTENT;
-        }
-
-        btn.classList.add('my-expand-button');
-        btnDiv.appendChild(btn);
-
-        return btnDiv;
-    }
-
 
     // Functions to wrap elements into Util elements
-
     function wrapIntoTooltip(node, tooltipText) {
         const tooltipDiv = document.createElement('div');
         tooltipDiv.classList.add('my-tooltip');
@@ -615,12 +585,17 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
         SWITCH_DIV: 'switch-div'
     };
     function wrapIntoTrayItem(node, type) {
+        console.info(node);
+        console.info(typeof node);
         const trayItem = document.createElement('div');
         trayItem.classList.add('tray-item');
-        if (type) {
-            trayItem.classList.add(type);
+        if (type) trayItem.classList.add(type);
+
+        if (Array.isArray(node)) {
+            trayItem.append(...node);
+        } else {
+            trayItem.appendChild(node);
         }
-        trayItem.appendChild(node);
         return trayItem;
     }
 
@@ -638,30 +613,7 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
     // ========== ========== ========== ========== ========== ========== ==========
 
     // Functions for the UPDATE tool button
-    function updateReactedCommentCards(commentCards) {
-        commentCards.forEach(node=> {
-            node.querySelector('div.my-expand-button-div')?.remove(); // Remove existing button if found
-
-            const contentDivs = node.querySelector('div.comment-content').childNodes;
-            const shrinkableDivs = [];
-            let noFirstPureTextNode = true;
-            for (const contentDiv of contentDivs) {
-                if (noFirstPureTextNode && isPureTextElement(contentDiv)) {
-                    noFirstPureTextNode = false;
-                    continue;
-                }
-                contentDiv.classList.add('my-shrinkable', 'my-shrunk');
-                shrinkableDivs.push(contentDiv);
-            }
-            if (noFirstPureTextNode) shrinkableDivs.shift(); // Remove the first one if really no any pure text div
-
-            // Append the shrink fold button
-            const toggleButton = createReactedCollapseButton('reacted').cloneNode('deep');
-            toggleButton.addEventListener('click', (event) => toggleButtonCallback(shrinkableDivs, event));
-            node.querySelector('div.comment-item-left').appendChild(toggleButton);
-        });
-    };
-    function updateNotReactedCommentCards(commentCards) {
+    function refreshCommentCards(commentCards = [], reacted = true){
         commentCards.forEach(node=> {
             node.querySelector('div.my-expand-button-div')?.remove(); // Remove existing button if found
 
@@ -674,17 +626,17 @@ const SWITCH_OFF_BACKGROUND_COLOR = `f7581a`;
                     continue;
                 }
                 contentDiv.classList.add('my-shrinkable');
+                if (reacted) contentDiv.classList.add('my-shrunk');
                 shrinkableDivs.push(contentDiv);
             }
             if (noFirstPureTextNode) shrinkableDivs.shift(); // Remove the first one if really no any pure text div
 
-            // Append the shrink fold button
-            const toggleButton = createReactedCollapseButton().cloneNode('deep');
+            // Append the fold button
+            const toggleButton = createCommentCardFoldButton(reacted).cloneNode('deep');
             toggleButton.addEventListener('click', (event) => toggleButtonCallback(shrinkableDivs, event));
             node.querySelector('div.comment-item-left').appendChild(toggleButton);
         });
-    };
-
+    }
 
     function shrinkByCondition(commentCardsGroupByTrueFalse) {
         for (const truthyCard of commentCardsGroupByTrueFalse.true ?? []) {
