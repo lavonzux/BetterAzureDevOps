@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         DisscussionFolder
+// @name         DiscussionFolder
 // @name:zh      評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.8-RC
+// @version      0.9.9-beta
 // @description  Add a tool tray in work item page for folding / expanding comments.
 // @description:zh 在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
