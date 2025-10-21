@@ -24,7 +24,7 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 
 ---
 ## Installation
-1.  **(推薦)** 從 GreasyFork 安裝[連結](https://greasyfork.org/zh-TW/scripts/552528)。
+1.  **(推薦)** 從 GreasyFork 安裝。[連結](https://greasyfork.org/zh-TW/scripts/552528)。
 2. 到 releases 下載打包好的 zip 檔，在 tampermonkey 使用匯出及匯入工具進行匯入。
 
 ---
