@@ -33,13 +33,13 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 #### DiscussionFolder (評論區摺疊工具)
 - [x] 可開合的工具箱。
 - [x] 全部開啟或關閉已反應的評論。
-- [ ] 整合其他腳本到工具托盤中。
-    - [ ] `DescriptionLocker (描述編輯器上鎖工具)` 
-    - [ ] `HeaderFolder (標題列摺疊工具)`
+- [x] 整合其他腳本到工具托盤中。
+    - [x] `DescriptionLocker (描述編輯器上鎖工具)` 
+    - [x] `HeaderFolder (標題列摺疊工具)`
 - [ ] 跳到下一個展開的評論卡。
 
 #### DescriptionLocker (描述編輯器上鎖工具)
-- [ ] `DescriptionLocker (描述編輯器上鎖工具)` 基於 div 覆蓋的 DescriptionLocker (描述編輯器上鎖工具)。
+- [ ] ~~`DescriptionLocker (描述編輯器上鎖工具)` 基於 div 覆蓋的 DescriptionLocker (描述編輯器上鎖工具)。~~ 會造成無法滾動檢視內容。
 - [ ] `DescriptionLocker (描述編輯器上鎖工具)` 修正會超出編輯區塊的欄寬編輯器。
 
 #### HeaderFolder (標題列摺疊工具)
