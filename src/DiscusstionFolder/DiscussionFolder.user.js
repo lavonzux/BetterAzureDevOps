@@ -350,7 +350,6 @@ function createStyle () {
         taskBarSwitched: false,
         ...GM_getValue('SETTINGS')
     };
-    console.log(SETTINGS);
 
 
     let lastClickedComment = null;
@@ -364,9 +363,6 @@ function createStyle () {
         tray.classList.add('my-tray', 'my-tray-shrunk');
         document.body.appendChild(tray);
         if (SETTINGS.trayOpened) toggleTray(tray);
-        //if (SETTINGS.layoutSwitched) switchWideLayout(SETTINGS.layoutSwitched);
-        //if (SETTINGS.taskBarSwitched) switchTaskBar(SETTINGS.taskBarSwitched);
-        initializeStateBySetting();
 
         tray.appendChild(createTrayToggle());
 
@@ -379,32 +375,28 @@ function createStyle () {
 
 
         // Switch tools
-        const layoutSwitch = createLayoutSwitch(SETTINGS.layoutSwitched);
-        const taskBarSwitch = createTaskBarSwitch(SETTINGS.taskBarSwitched);
-        tray.appendChild(createSwitchTools([...layoutSwitch, ...taskBarSwitch]));
+        const layoutSw = createStatefulSwitch(
+            'layoutSwitch',
+            switchWideLayout,
+            '5:2排版',
+            '調整排版，將左側常用的Description及Discussion放大。',
+            SETTINGS.layoutSwitched
+        );
+        const taskBarSw = createStatefulSwitch(
+            'taskBarSwitch',
+            switchTaskBar,
+            '縮小task',
+            '調整task bar，將不常用的元素隱藏並縮成一行。',
+            SETTINGS.taskBarSwitched
+        );
+
+        tray.appendChild(wrapIntoTrayItem(
+            [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch],
+            TRAY_ITEM_TYPE.SWITCH_DIV
+        ));
 
     });
 
-    function initializeStateBySetting() {
-        if (SETTINGS.layoutSwitched) {
-            console.log(`layoutSwitched is set to ${SETTINGS.layoutSwitched}, try interval`);
-            let tryCount = 0;
-            const intervalId = setInterval(() => {
-                console.log(`Try: ${tryCount}`);
-                const sucess = switchWideLayout(SETTINGS.layoutSwitched);
-                if (sucess) {
-                    console.log(`switch sucess, exiting`);
-                    clearInterval(intervalId);
-                } else if (tryCount >=5) {
-                    console.log(`Try count reaches 5, exiting`);
-                    clearInterval(intervalId);
-                } else {
-                    console.log(`Fail to switch, wait for 500ms`);
-                    tryCount++;
-                }
-            }, 500);
-        }
-    }
 
     /**
      * Find comment cards and group them into two groups by given predicate
@@ -541,14 +533,14 @@ function createStyle () {
     }
 
     // Functions for creating all switch tools
-    function createSwitch(id, switched, switchEventCallback) {
+    function createSwitchElement(switchId, switched, switchEventCallback) {
         const label = document.createElement('label');
         label.classList.add('my-switch');
 
         const checkbox = document.createElement('input');
         checkbox.setAttribute("type", "checkbox");
         checkbox.addEventListener('change', switchEventCallback);
-        checkbox.setAttribute('id', id);
+        checkbox.setAttribute('id', switchId);
         if (switched) checkbox.checked = true;
 
         const slider = document.createElement('div');
@@ -557,22 +549,68 @@ function createStyle () {
         label.appendChild(checkbox);
         label.appendChild(slider);
 
+        // expose checkbox's checked prop to parent node
+        Object.defineProperty(label, 'checked', {
+            set(value) {
+                checkbox.checked = value;
+            }
+        });
+
         return label;
     }
-    function createLabelAndSwitchPair(switchId, switched, labelText, labelTooltip, switchCallback) {
+    function createSwitchLabel(switchId, labelText, labelTooltip) {
         const label = document.createElement('label');
         label.innerText = labelText;
         label.classList.add('my-sw-label');
         label.setAttribute('for', switchId);
-        const swLabelInTooltip = wrapIntoTooltip(label, labelTooltip);
-        const sw = createSwitch(switchId, switched, switchCallback);
-        return [swLabelInTooltip, sw];
-    }
-    function createSwitchTools(switches) {
-        return wrapIntoTrayItem(switches, TRAY_ITEM_TYPE.SWITCH_DIV);
+        return wrapIntoTooltip(label, labelTooltip);
+    };
+    /*function createLabelAndSwitchPair(switchId, switched, labelText, labelTooltip, switchCallback) {
+        const label = createSwitchLabel(switchId, labelText, labelTooltip);
+        const sw = createSwitchElement(switchId, switched, switchCallback);
+        return [label, sw];
+    }*/
+
+    /**
+     * Create a toogle switch element whose checked prop is directly associated with it's switchCallback
+     * @property switchId Element ID for the switch
+     * @property switchCallback The callback for the switch's onchange event, return success flag
+     * @property labelText Text of the label
+     * @property labelTooltip Description that pops up when pointing at the label
+     * @property state The initial state that will be fed to the switchCallback
+     * @returns  An object of the switch itself, the label, and a promise that does the state initialization
+     */
+    function createStatefulSwitch(switchId, switchCallback, labelText, labelTooltip, state, initConfig = { maxTry: 6, tryInterval: 500 }) {
+        const label = createSwitchLabel(switchId, labelText, labelTooltip);
+        const sw = createSwitchElement(switchId, false, switchCallback);
+        const initializer = !state ? null : new Promise((resolve, reject) => {
+            let tryCount = 1;
+            const intervalId = setInterval(() => {
+                console.log(`Try: ${tryCount}`);
+                const success = switchCallback(state);
+                if (success) {
+                    console.log(`switch success, exiting`);
+                    resolve();
+                    clearInterval(intervalId);
+                } else if (tryCount >= initConfig.maxTry) {
+                    console.log(`Try count maxed out, abort`);
+                    clearInterval(intervalId);
+                    reject();
+                } else {
+                    console.log(`Fail to switch, wait for next try`);
+                    tryCount++;
+                }
+            }, initConfig.tryInterval);
+        }).then(() => {
+            sw.checked = true;
+        }).catch(() => {
+            sw.checked = false;
+        });
+
+        return { label: label, switch: sw, initializer: initializer };
     }
 
-    function createLayoutSwitch(switched) {
+    /*function createLayoutSwitch(switched) {
         return createLabelAndSwitchPair(
             'layoutSwitch',
             switched,
@@ -580,9 +618,9 @@ function createStyle () {
             '調整排版，將左側常用的Description及Discussion放大。',
             event => switchWideLayout(event.target.checked)
         );
-    }
+    }*/
 
-    function createTaskBarSwitch(switched) {
+    /*function createTaskBarSwitch(switched) {
         return createLabelAndSwitchPair(
             'taskBarSwitch',
             switched,
@@ -590,7 +628,7 @@ function createStyle () {
             '調整task bar，將不常用的元素隱藏並縮成一行。',
             event => switchTaskBar(event.target.checked)
         );
-    }
+    }*/
 
     // Function for creating tool buttons
     function createToolButton(text, callback) {
