@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.10-alpha
+// @version      0.9.10-beta
 // @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
@@ -377,21 +377,31 @@ function createStyle () {
         // Switch tools
         const layoutSw = createStatefulSwitch(
             'layoutSwitch',
+            false,
             switchWideLayout,
-            '5:2排版',
+            '調整排版',
             '調整排版，將左側常用的Description及Discussion放大。',
             SETTINGS.layoutSwitched
         );
         const taskBarSw = createStatefulSwitch(
             'taskBarSwitch',
+            false,
             switchTaskBar,
-            '縮小task',
+            '縮小標題',
             '調整task bar，將不常用的元素隱藏並縮成一行。',
             SETTINGS.taskBarSwitched
         );
+        const descLock = createStatefulSwitch(
+            'descLock',
+            true,
+            toggleDescLock,
+            '描述鎖定',
+            '鎖定 description 的編輯器，避免不小心改動。',
+            null
+        );
 
         tray.appendChild(wrapIntoTrayItem(
-            [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch],
+            [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch, descLock.label, descLock.switch],
             TRAY_ITEM_TYPE.SWITCH_DIV
         ));
 
@@ -539,9 +549,12 @@ function createStyle () {
 
         const checkbox = document.createElement('input');
         checkbox.setAttribute("type", "checkbox");
-        checkbox.addEventListener('change', switchEventCallback);
+        checkbox.addEventListener('change', (event) => switchEventCallback(event.target.checked));
         checkbox.setAttribute('id', switchId);
-        if (switched) checkbox.checked = true;
+        if (switched) {
+            checkbox.checked = true;
+            switchEventCallback(true);
+        }
 
         const slider = document.createElement('div');
         slider.classList.add('my-slider');
@@ -578,11 +591,12 @@ function createStyle () {
      * @property labelText Text of the label
      * @property labelTooltip Description that pops up when pointing at the label
      * @property state The initial state that will be fed to the switchCallback
+     * @property initConfig a config object setting maxTry and tryInterval for the initializer
      * @returns  An object of the switch itself, the label, and a promise that does the state initialization
      */
-    function createStatefulSwitch(switchId, switchCallback, labelText, labelTooltip, state, initConfig = { maxTry: 6, tryInterval: 500 }) {
+    function createStatefulSwitch(switchId, checkedByDefault, switchCallback, labelText, labelTooltip, state, initConfig = { maxTry: 6, tryInterval: 500 }) {
         const label = createSwitchLabel(switchId, labelText, labelTooltip);
-        const sw = createSwitchElement(switchId, false, switchCallback);
+        const sw = createSwitchElement(switchId, checkedByDefault, switchCallback);
         const initializer = !state ? null : new Promise((resolve, reject) => {
             let tryCount = 1;
             const intervalId = setInterval(() => {
@@ -753,6 +767,7 @@ function createStyle () {
     }
 
     function switchTaskBar(foldTaskBar = true) {
+        debugger;
         const workItemFormHeader = document.querySelector('div.work-item-form-header');
         if (!workItemFormHeader) return false;
 
@@ -780,11 +795,31 @@ function createStyle () {
             workItemFormHeader.childNodes[2].childNodes[1].classList.remove('hidden');
             workItemFormHeader.childNodes[2].childNodes[2].classList.remove('hidden');
             workItemFormHeader.childNodes[2].childNodes[3].classList.remove('hidden');
-
         }
         GM_setValue('SETTINGS', { ...SETTINGS, taskBarSwitched: foldTaskBar });
         return true;
     }
+
+    function toggleDescLock() {
+        const editor = document.querySelector('.lean-rooster.rooster-editor');
+        const editable = editor.contentEditable === 'true';
+        const btn = document.querySelector('#toggle-edit-btn');
+        if (editable) {
+            //btn.classList.toggle('edit-enabled');
+            //btn.classList.toggle('edit-disabled');
+            //btn.innerText = '🔓 Unlock editor';
+            // alert(`Editor is now locked........`);
+            editor.contentEditable = 'false';
+        } else {
+            //btn.classList.toggle('edit-enabled');
+            //btn.classList.toggle('edit-disabled');
+            //btn.innerText = '🔒 Lock editor';
+            alert(`Editor is UNLOCKED!!!`);
+            editor.contentEditable = 'true';
+        }
+
+    };
+
 
     observer.observe(document.body, {
         childList: true,
