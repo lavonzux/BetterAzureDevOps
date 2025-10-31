@@ -729,7 +729,12 @@ function createStyle () {
                 if (reacted) contentDiv.classList.add('my-shrunk');
                 shrinkableDivs.push(contentDiv);
             }
-            if (noFirstPureTextNode) shrinkableDivs.shift(); // Remove the first one if really no any pure text div
+
+            // Remove the first one if really no any pure text div
+            if (noFirstPureTextNode) {
+                const theFirst = shrinkableDivs.shift();
+                theFirst.classList.remove('my-shrunk', 'my-shrinkable');
+            }
 
             // Append the fold button
             const toggleButton = createCommentCardFoldButton(reacted).cloneNode('deep');
@@ -813,6 +818,7 @@ function createStyle () {
             editor.addEventListener('mousedown', locked, true);
             editor.addEventListener('mouseup', locked, true);
             editor.style.cursor = 'not-allowed';
+            editor.title = '編輯功能已鎖定，關閉工具盤右下的描述鎖定以解除。';
         } else {
             //alert(`Editor is UNLOCKED!!!`);
             //editor.contentEditable = 'true';
