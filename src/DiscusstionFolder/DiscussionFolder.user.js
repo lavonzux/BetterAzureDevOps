@@ -1,17 +1,16 @@
 // ==UserScript==
-// @name         DiscussionFolder
-// @name:zh      評論區摺疊工具
+// @name         評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.9-beta
-// @description  Add a tool tray in work item page for folding / expanding comments.
-// @description:zh 在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
+// @version      0.9.10-beta
+// @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
 // @icon         https://cdn.vsassets.io/content/icons/favicon.ico
-// @grant        none
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @license      Apache License 2.0
-// @downloadURL https://update.greasyfork.org/scripts/552528/%E8%A9%95%E8%AB%96%E5%8D%80%E6%91%BA%E7%96%8A%E5%B0%8F%E5%B7%A5%E5%85%B7.user.js
-// @updateURL https://update.greasyfork.org/scripts/552528/%E8%A9%95%E8%AB%96%E5%8D%80%E6%91%BA%E7%96%8A%E5%B0%8F%E5%B7%A5%E5%85%B7.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/552528/%E8%A9%95%E8%AB%96%E5%8D%80%E6%91%BA%E7%96%8A%E5%B7%A5%E5%85%B7.user.js
+// @updateURL https://update.greasyfork.org/scripts/552528/%E8%A9%95%E8%AB%96%E5%8D%80%E6%91%BA%E7%96%8A%E5%B7%A5%E5%85%B7.meta.js
 // ==/UserScript==
 
 // 工具盤預設打開
@@ -43,9 +42,7 @@ const SWITCH_OFF_BACKGROUND_COLOR = '#aaaa';
 // Switch文字顏色
 const SWITCH_LABEL_TEXT_COLOR = '#000';
 
-
-(function() {
-    'use strict';
+function createStyle () {
     const style = document.createElement('style');
     style.innerHTML = `
         :root {
@@ -335,11 +332,24 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
         }
 
         .my-sw-label {
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           color: ${SWITCH_LABEL_TEXT_COLOR};
+          white-space: nowrap;
         }
     `;
     document.head.appendChild(style);
+}
+
+(function() {
+    'use strict';
+    createStyle();
+
+    const SETTINGS = {
+        trayOpened: TRAY_OPEN_BY_DEFAULT,
+        layoutSwitched: false,
+        taskBarSwitched: false,
+        ...GM_getValue('SETTINGS')
+    };
 
 
     let lastClickedComment = null;
@@ -352,7 +362,7 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
         const tray = document.createElement('div');
         tray.classList.add('my-tray', 'my-tray-shrunk');
         document.body.appendChild(tray);
-        if (TRAY_OPEN_BY_DEFAULT) toggleTray(tray);
+        if (SETTINGS.trayOpened) toggleTray(tray);
 
         tray.appendChild(createTrayToggle());
 
@@ -365,10 +375,38 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
 
 
         // Switch tools
-        const layoutSwitch = createLayoutSwitch();
-        tray.appendChild(createSwitchTools([...layoutSwitch]));
+        const layoutSw = createStatefulSwitch(
+            'layoutSwitch',
+            false,
+            switchWideLayout,
+            '調整排版',
+            '調整排版，將左側常用的Description及Discussion放大。',
+            SETTINGS.layoutSwitched
+        );
+        const taskBarSw = createStatefulSwitch(
+            'taskBarSwitch',
+            false,
+            switchTaskBar,
+            '縮小標題',
+            '調整task bar，將不常用的元素隱藏並縮成一行。',
+            SETTINGS.taskBarSwitched
+        );
+        const descLock = createStatefulSwitch(
+            'descLock',
+            true,
+            toggleDescLock,
+            '描述鎖定',
+            '鎖定 description 的編輯器，避免不小心改動。',
+            true // I want to lock the desc editor onload no matter what
+        );
+
+        tray.appendChild(wrapIntoTrayItem(
+            [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch, descLock.label, descLock.switch],
+            TRAY_ITEM_TYPE.SWITCH_DIV
+        ));
 
     });
+
 
     /**
      * Find comment cards and group them into two groups by given predicate
@@ -397,9 +435,11 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
         if (tray.classList.contains('my-tray-shrunk')) {
             tray.classList.remove('my-tray-shrunk');
             tray.classList.add('my-tray-expand');
+            GM_setValue('SETTINGS', { ...SETTINGS, trayOpened: true });
         } else {
             tray.classList.remove('my-tray-expand');
             tray.classList.add('my-tray-shrunk');
+            GM_setValue('SETTINGS', { ...SETTINGS, trayOpened: false });
         }
     }
     function toggleButtonCallback(controlledDivs, event) {
@@ -503,14 +543,18 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
     }
 
     // Functions for creating all switch tools
-    function createSwitch(id, switchEventCallback) {
+    function createSwitchElement(switchId, switched, switchEventCallback) {
         const label = document.createElement('label');
         label.classList.add('my-switch');
 
         const checkbox = document.createElement('input');
         checkbox.setAttribute("type", "checkbox");
-        checkbox.addEventListener('change', switchEventCallback);
-        checkbox.setAttribute('id', id);
+        checkbox.addEventListener('change', (event) => switchEventCallback(event.target.checked));
+        checkbox.setAttribute('id', switchId);
+        if (switched) {
+            checkbox.checked = true;
+            switchEventCallback(true);
+        }
 
         const slider = document.createElement('div');
         slider.classList.add('my-slider');
@@ -518,29 +562,87 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
         label.appendChild(checkbox);
         label.appendChild(slider);
 
+        // expose checkbox's checked prop to parent node
+        Object.defineProperty(label, 'checked', {
+            set(value) {
+                checkbox.checked = value;
+            }
+        });
+
         return label;
     }
-    function createLabelAndSwitchPair(switchId, labelText, labelTooltip, switchCallback) {
+    function createSwitchLabel(switchId, labelText, labelTooltip) {
         const label = document.createElement('label');
         label.innerText = labelText;
         label.classList.add('my-sw-label');
         label.setAttribute('for', switchId);
-        const swLabelInTooltip = wrapIntoTooltip(label, labelTooltip);
-        const sw = createSwitch(switchId, switchCallback);
-        return [swLabelInTooltip, sw];
-    }
-    function createSwitchTools(switches) {
-        return wrapIntoTrayItem(switches, TRAY_ITEM_TYPE.SWITCH_DIV);
+        return wrapIntoTooltip(label, labelTooltip);
+    };
+    /*function createLabelAndSwitchPair(switchId, switched, labelText, labelTooltip, switchCallback) {
+        const label = createSwitchLabel(switchId, labelText, labelTooltip);
+        const sw = createSwitchElement(switchId, switched, switchCallback);
+        return [label, sw];
+    }*/
+
+    /**
+     * Create a toogle switch element whose checked prop is directly associated with it's switchCallback
+     * @property switchId Element ID for the switch
+     * @property switchCallback The callback for the switch's onchange event, return success flag
+     * @property labelText Text of the label
+     * @property labelTooltip Description that pops up when pointing at the label
+     * @property state The initial state that will be fed to the switchCallback
+     * @property initConfig a config object setting maxTry and tryInterval for the initializer
+     * @returns  An object of the switch itself, the label, and a promise that does the state initialization
+     */
+    function createStatefulSwitch(switchId, checkedByDefault, switchCallback, labelText, labelTooltip, state, initConfig = { maxTry: 6, tryInterval: 500 }) {
+        const label = createSwitchLabel(switchId, labelText, labelTooltip);
+        const sw = createSwitchElement(switchId, checkedByDefault, switchCallback);
+        const initializer = !state ? null : new Promise((resolve, reject) => {
+            let tryCount = 1;
+            const intervalId = setInterval(() => {
+                console.log(`Try: ${tryCount}`);
+                const success = switchCallback(state);
+                if (success) {
+                    console.log(`switch success, exiting`);
+                    resolve();
+                    clearInterval(intervalId);
+                } else if (tryCount >= initConfig.maxTry) {
+                    console.log(`Try count maxed out, abort`);
+                    clearInterval(intervalId);
+                    reject();
+                } else {
+                    console.log(`Fail to switch, wait for next try`);
+                    tryCount++;
+                }
+            }, initConfig.tryInterval);
+        }).then(() => {
+            sw.checked = true;
+        }).catch(() => {
+            sw.checked = false;
+        });
+
+        return { label: label, switch: sw, initializer: initializer };
     }
 
-    function createLayoutSwitch() {
+    /*function createLayoutSwitch(switched) {
         return createLabelAndSwitchPair(
             'layoutSwitch',
-            '5:2排版', 
-            '調整排版，將左側常用的Description及Discussion放大。', 
+            switched,
+            '5:2排版',
+            '調整排版，將左側常用的Description及Discussion放大。',
             event => switchWideLayout(event.target.checked)
         );
-    }
+    }*/
+
+    /*function createTaskBarSwitch(switched) {
+        return createLabelAndSwitchPair(
+            'taskBarSwitch',
+            switched,
+            '縮小task',
+            '調整task bar，將不常用的元素隱藏並縮成一行。',
+            event => switchTaskBar(event.target.checked)
+        );
+    }*/
 
     // Function for creating tool buttons
     function createToolButton(text, callback) {
@@ -585,8 +687,6 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
         SWITCH_DIV: 'switch-div'
     };
     function wrapIntoTrayItem(node, type) {
-        console.info(node);
-        console.info(typeof node);
         const trayItem = document.createElement('div');
         trayItem.classList.add('tray-item');
         if (type) trayItem.classList.add(type);
@@ -653,7 +753,7 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
     function switchWideLayout(setToWide = true) {
         const gridContainer = document.querySelector('div.work-item-grid.first-column-wide');
         const rightSection = document.querySelector('div.work-item-form-right');
-        if (!gridContainer || !rightSection) return;
+        if (!gridContainer || !rightSection) return false;
 
         if (setToWide) {
             document.querySelector('div.work-item-grid.first-column-wide').style.gridTemplateColumns = '5fr 2fr';
@@ -662,8 +762,67 @@ const SWITCH_LABEL_TEXT_COLOR = '#000';
             document.querySelector('div.work-item-grid.first-column-wide').style.gridTemplateColumns = null;
             document.querySelector('div.work-item-form-right').style.gridArea = null;
         }
-
+        GM_setValue('SETTINGS', { ...SETTINGS, layoutSwitched: setToWide });
+        return true;
     }
+
+    function switchTaskBar(foldTaskBar = true) {
+        const workItemFormHeader = document.querySelector('div.work-item-form-header');
+        if (!workItemFormHeader) return false;
+
+        if (foldTaskBar) {
+            // 1. add paddin-top-4 to the bar for symmetric padding
+            workItemFormHeader.classList.add('padding-top-4');
+
+            // 2. change flex-direction to 'row'
+            workItemFormHeader.classList.remove('flex-column');
+            workItemFormHeader.classList.add('flex-row');
+
+            // 3. add flex-grow to the second child
+            workItemFormHeader.children[1].classList.add('flex-grow');
+
+            // 4. hide useless elements in the thrid child
+            workItemFormHeader.childNodes[2].childNodes[1].classList.add('hidden');
+            workItemFormHeader.childNodes[2].childNodes[2].classList.add('hidden');
+            workItemFormHeader.childNodes[2].childNodes[3].classList.add('hidden');
+        } else {
+            // undo everything
+            workItemFormHeader.classList.remove('padding-top-4');
+            workItemFormHeader.classList.add('flex-column');
+            workItemFormHeader.classList.remove('flex-row');
+            workItemFormHeader.children[1].classList.remove('flex-grow');
+            workItemFormHeader.childNodes[2].childNodes[1].classList.remove('hidden');
+            workItemFormHeader.childNodes[2].childNodes[2].classList.remove('hidden');
+            workItemFormHeader.childNodes[2].childNodes[3].classList.remove('hidden');
+        }
+        GM_setValue('SETTINGS', { ...SETTINGS, taskBarSwitched: foldTaskBar });
+        return true;
+    }
+
+    function locked(e) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+    }
+
+    function toggleDescLock(lock = true) {
+        const editor = document.querySelector('div[id^="__bolt-Description"]');
+        if (!editor) return false;
+        if (lock) {
+            //alert(`Editor is now locked........`);
+            //editor.contentEditable = 'false';
+            editor.addEventListener('mousedown', locked, true);
+            editor.addEventListener('mouseup', locked, true);
+            editor.style.cursor = 'not-allowed';
+        } else {
+            //alert(`Editor is UNLOCKED!!!`);
+            //editor.contentEditable = 'true';
+            editor.removeEventListener('mousedown', locked, true);
+            editor.removeEventListener('mouseup', locked, true);
+            editor.style.cursor = null;
+        }
+        return true;
+    };
+
 
     observer.observe(document.body, {
         childList: true,

@@ -3,6 +3,21 @@
 
 ---
 
+## [0.9.10-beta] 2025-10-31
+
+---
+
+### Added
+- Implemented stateful switch
+- Integrated TaskbarSwitch
+- Integrated DescriptionLocker
+
+### Changed
+- Refactored functions for creating switch and label
+
+### Fixed
+- Improved some minor styling issue
+
 ## [0.9.9-beta] 2025-10-21
 
 ---
