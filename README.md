@@ -36,10 +36,28 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 - [x] 整合其他腳本到工具托盤中。
     - [x] `DescriptionLocker (描述編輯器上鎖工具)` 
     - [x] `HeaderFolder (標題列摺疊工具)`
-- [ ] 跳到下一個展開的評論卡。
-
+- [ ] 把 stateful initializer 應用到 refresh button
+- [ ] 按下 reaction 自動 refresh
+- [ ] 跳到下一個展開的評論。
+- [ ] comment 書籤功能。
+- [ ] 自定義及設定畫面。
+  - [ ] 抽出CSS樣式提供客製化。
+  - [ ] 工具盤增加設定頁。
+ 
 #### DescriptionLocker (描述編輯器上鎖工具)
-- [ ] ~~`DescriptionLocker (描述編輯器上鎖工具)` 基於 div 覆蓋的 DescriptionLocker (描述編輯器上鎖工具)。~~ 會造成無法滾動檢視內容。
+- [ ] `DescriptionLocker (描述編輯器上鎖工具)` 基於重新綁定 eventListener 的 DescriptionLocker。
+  - ~~會造成無法滾動檢視內容。~~
+  - 找到方法了，可以重新綁定mousedown & mouseup 事件來打斷原始事件。
+  - 筆記:
+    ```javascript
+    function locked(e) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+    const editor = document.querySelector('div[id^="__bolt-Description"]');
+    editor.addEventListener('mousedown', locked, true);
+    editor.addEventListener('mouseup', locked, true);
+    ```
 - [ ] `DescriptionLocker (描述編輯器上鎖工具)` 修正會超出編輯區塊的欄寬編輯器。
 
 #### HeaderFolder (標題列摺疊工具)
