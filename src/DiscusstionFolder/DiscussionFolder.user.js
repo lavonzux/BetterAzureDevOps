@@ -397,7 +397,7 @@ function createStyle () {
             toggleDescLock,
             '描述鎖定',
             '鎖定 description 的編輯器，避免不小心改動。',
-            null
+            true // I want to lock the desc editor onload no matter what
         );
 
         tray.appendChild(wrapIntoTrayItem(
@@ -767,7 +767,6 @@ function createStyle () {
     }
 
     function switchTaskBar(foldTaskBar = true) {
-        debugger;
         const workItemFormHeader = document.querySelector('div.work-item-form-header');
         if (!workItemFormHeader) return false;
 
@@ -800,24 +799,28 @@ function createStyle () {
         return true;
     }
 
-    function toggleDescLock() {
-        const editor = document.querySelector('.lean-rooster.rooster-editor');
-        const editable = editor.contentEditable === 'true';
-        const btn = document.querySelector('#toggle-edit-btn');
-        if (editable) {
-            //btn.classList.toggle('edit-enabled');
-            //btn.classList.toggle('edit-disabled');
-            //btn.innerText = '🔓 Unlock editor';
-            // alert(`Editor is now locked........`);
-            editor.contentEditable = 'false';
-        } else {
-            //btn.classList.toggle('edit-enabled');
-            //btn.classList.toggle('edit-disabled');
-            //btn.innerText = '🔒 Lock editor';
-            alert(`Editor is UNLOCKED!!!`);
-            editor.contentEditable = 'true';
-        }
+    function locked(e) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+    }
 
+    function toggleDescLock(lock = true) {
+        const editor = document.querySelector('div[id^="__bolt-Description"]');
+        if (!editor) return false;
+        if (lock) {
+            //alert(`Editor is now locked........`);
+            //editor.contentEditable = 'false';
+            editor.addEventListener('mousedown', locked, true);
+            editor.addEventListener('mouseup', locked, true);
+            editor.style.cursor = 'not-allowed';
+        } else {
+            //alert(`Editor is UNLOCKED!!!`);
+            //editor.contentEditable = 'true';
+            editor.removeEventListener('mousedown', locked, true);
+            editor.removeEventListener('mouseup', locked, true);
+            editor.style.cursor = null;
+        }
+        return true;
     };
 
 
