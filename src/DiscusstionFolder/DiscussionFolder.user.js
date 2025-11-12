@@ -825,6 +825,7 @@ function createStyle () {
             editor.removeEventListener('mousedown', locked, true);
             editor.removeEventListener('mouseup', locked, true);
             editor.style.cursor = null;
+            editor.removeAttribute('title');
         }
         return true;
     };
