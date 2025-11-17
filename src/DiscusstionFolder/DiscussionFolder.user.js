@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.10-beta
+// @version      0.9.11-beta
 // @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
@@ -153,6 +153,18 @@ function createStyle () {
           display: grid;
           grid-template-columns: 3fr 1fr;
           gap: 0.25rem;
+          transition: 0.3s;
+        }
+        .my-tray .tray-item.search-div:has(input.my-search-input:focus) {
+          grid-template-columns: 4fr 0fr;
+        }
+        .my-tray .tray-item.search-div button {
+          max-width: 9999px;
+          transition: 300ms;
+        }
+        .my-tray .tray-item.search-div .my-tooltip:has(input.my-search-input:focus) + button {
+          max-width: 0;
+          padding: 0;
         }
         .my-tray .tray-item.switch-div {
           grid-column-start: 1;
@@ -199,6 +211,7 @@ function createStyle () {
           height: 100%;
         }
         .my-tooltip .my-tooltiptext {
+          opacity: 0;
           visibility: hidden;
           width: calc(var(--tray-width) * 0.5);
           background-color: #000c;
@@ -211,8 +224,10 @@ function createStyle () {
           bottom: calc(var(--tray-height) + 1rem);
           left: 0;
           transform: translateX(calc(var(--tray-width) * 0.25));
+          transition: opacity ease-in-out 0.1s;
         }
-        .my-tooltip:hover .my-tooltiptext {
+        .my-tooltip:not(:has(input.my-search-input:focus)):hover .my-tooltiptext {
+          opacity: 1;
           visibility: visible;
         }
 
