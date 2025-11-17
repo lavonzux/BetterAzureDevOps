@@ -494,6 +494,7 @@ function createStyle () {
                 const groupByReacted = findCommentCardsByPredicate(GROUPIND_PREDICATE.BY_REACTION_EXIST);
                 refreshCommentCards(groupByReacted.true, true);
                 refreshCommentCards(groupByReacted.false, false);
+                shrinkByCondition(groupByReacted);
             }
         );
         const inTooltip = wrapIntoTooltip(
@@ -741,7 +742,6 @@ function createStyle () {
                     continue;
                 }
                 contentDiv.classList.add('my-shrinkable');
-                if (reacted) contentDiv.classList.add('my-shrunk');
                 shrinkableDivs.push(contentDiv);
             }
 
