@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.11-beta
+// @version      0.9.12-beta
 // @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
@@ -355,6 +355,46 @@ function createStyle () {
     document.head.appendChild(style);
 }
 
+class InitConfig {
+    constructor(maxTry = 6, tryInterval = 500) {
+        this.maxTry = maxTry;
+        this.tryInterval = tryInterval;
+    }
+}
+
+function createTray(state, initConfig = { maxTry: 6, tryInterval: 500 }) {
+    const myTray = document.body.querySelector('div.my-tray');
+    if (myTray) return;
+
+    const tray = document.createElement('div');
+    tray.classList.add('my-tray', 'my-tray-shrunk');
+    document.body.appendChild(tray);
+}
+
+
+function createInitializer(initCallback, initState, initConfig = new InitConfig()) {
+    const initializer = new Promise((resolve, reject) => {
+        let tryCount = 1;
+        const intervalId = setInterval(() => {
+            const success = initCallback(initState);
+            if (success) {
+                resolve();
+                clearInterval(intervalId);
+            } else if (tryCount >= initConfig.maxTry) {
+                clearInterval(intervalId);
+                reject();
+            } else {
+                tryCount++;
+            }
+        }, initConfig.tryInterval);
+    }).then(() => {
+        sw.checked = true;
+    }).catch(() => {
+        sw.checked = false;
+    });
+}
+
+
 (function() {
     'use strict';
     createStyle();
@@ -391,37 +431,40 @@ function createStyle () {
 
         // Switch tools
         const layoutSw = createStatefulSwitch(
-            'layoutSwitch',
-            false,
-            switchWideLayout,
-            '調整排版',
-            '調整排版，將左側常用的Description及Discussion放大。',
-            SETTINGS.layoutSwitched
+          'layoutSwitch',
+          false,
+          switchWideLayout,
+          '調整排版',
+          '調整排版，將左側常用的Description及Discussion放大。',
+          SETTINGS.layoutSwitched
         );
         const taskBarSw = createStatefulSwitch(
-            'taskBarSwitch',
-            false,
-            switchTaskBar,
-            '縮小標題',
-            '調整task bar，將不常用的元素隱藏並縮成一行。',
-            SETTINGS.taskBarSwitched
+          'taskBarSwitch',
+          false,
+          switchTaskBar,
+          '縮小標題',
+          '調整task bar，將不常用的元素隱藏並縮成一行。',
+          SETTINGS.taskBarSwitched
         );
         const descLock = createStatefulSwitch(
-            'descLock',
-            true,
-            toggleDescLock,
-            '描述鎖定',
-            '鎖定 description 的編輯器，避免不小心改動。',
-            true // I want to lock the desc editor onload no matter what
+          'descLock',
+          true,
+          toggleDescLock,
+          '描述鎖定',
+          '鎖定 description 的編輯器，避免不小心改動。',
+          true // I want to lock the desc editor onload no matter what
         );
 
         tray.appendChild(wrapIntoTrayItem(
-            [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch, descLock.label, descLock.switch],
-            TRAY_ITEM_TYPE.SWITCH_DIV
+          [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch, descLock.label, descLock.switch],
+          TRAY_ITEM_TYPE.SWITCH_DIV
         ));
 
     });
 
+    const refreshObserver = new MutationObserver((_record, observer) => {
+
+    })
 
     /**
      * Find comment cards and group them into two groups by given predicate
@@ -434,7 +477,7 @@ function createStyle () {
         if (commentCards.length <= 0) return { true: [], false: [] };
 
         return {
-            true: [],  // Make sure that returned object have 
+            true: [],  // Make sure that returned object have
             false: [], // both key(true/false) and value(empty array)
             ...Object.groupBy(commentCards, (card) => groupingPredicate(card))
         };
@@ -489,17 +532,17 @@ function createStyle () {
     }
     function createRefreshButton() {
         const refreshButton = createToolButton(
-            '🔃 更新摺疊按鈕狀態',
-            function () {
-                const groupByReacted = findCommentCardsByPredicate(GROUPIND_PREDICATE.BY_REACTION_EXIST);
-                refreshCommentCards(groupByReacted.true, true);
-                refreshCommentCards(groupByReacted.false, false);
-                shrinkByCondition(groupByReacted);
-            }
+          '🔃 更新摺疊按鈕狀態',
+          function () {
+              const groupByReacted = findCommentCardsByPredicate(GROUPIND_PREDICATE.BY_REACTION_EXIST);
+              refreshCommentCards(groupByReacted.true, true);
+              refreshCommentCards(groupByReacted.false, false);
+              shrinkByCondition(groupByReacted);
+          }
         );
         const inTooltip = wrapIntoTooltip(
-            refreshButton, 
-            '更新評論卡片中摺疊按鈕的狀態，初次載入頁面時建議等完全載入後再按'
+          refreshButton,
+          '更新評論卡片中摺疊按鈕的狀態，初次載入頁面時建議等完全載入後再按'
         );
         return wrapIntoTrayItem(inTooltip, TRAY_ITEM_TYPE.REFRESH_DIV);
     }
@@ -515,22 +558,22 @@ function createStyle () {
     }
     function createExpandReactedButton() {
         const expandReactedBtn = createToolButton(
-            '⏬ 開已回應',
-            () => {
-                const predicate = (card) => !(GROUPIND_PREDICATE.BY_REACTION_EXIST(card));
-                shrinkByCondition(findCommentCardsByPredicate(predicate));
-            }
+          '⏬ 開已回應',
+          () => {
+              const predicate = (card) => !(GROUPIND_PREDICATE.BY_REACTION_EXIST(card));
+              shrinkByCondition(findCommentCardsByPredicate(predicate));
+          }
         );
         const inTooltip = wrapIntoTooltip(expandReactedBtn, '打開已反應的評論卡');
         return wrapIntoTrayItem(inTooltip);
     }
     function createShrinkReactedButton() {
         const shrinkReactedBtn = createToolButton(
-            '⏫ 關已回應',
-            () => {
-                const predicate = GROUPIND_PREDICATE.BY_REACTION_EXIST;
-                shrinkByCondition(findCommentCardsByPredicate(predicate));
-            }
+          '⏫ 關已回應',
+          () => {
+              const predicate = GROUPIND_PREDICATE.BY_REACTION_EXIST;
+              shrinkByCondition(findCommentCardsByPredicate(predicate));
+          }
         );
         const inTooltip = wrapIntoTooltip(shrinkReactedBtn, '摺疊已反應的評論卡');
         return wrapIntoTrayItem(inTooltip);
@@ -541,18 +584,18 @@ function createStyle () {
         searchInput.placeholder = '輸入欲搜尋的文字';
         searchInput.classList.add('my-search-input');
         const searchInputInTooltip = wrapIntoTooltip(
-            searchInput,
-            '輸入欲搜尋的文字，會展開所有包含該文字的評論，並摺疊不包含該字串的評論。'
+          searchInput,
+          '輸入欲搜尋的文字，會展開所有包含該文字的評論，並摺疊不包含該字串的評論。'
         );
 
         const searchBtn = createToolButton(
-            '🔍 搜尋', 
-            () => {
-                const targetString = document.querySelector('div.my-tray .tray-item.search-div input.my-search-input').value;
-                const predicate = GROUPIND_PREDICATE.BY_STRING_IGNORE_CASE(targetString);
-                const groupedCommentCards = findCommentCardsByPredicate(predicate);
-                shrinkByCondition(groupedCommentCards);
-            }
+          '🔍 搜尋',
+          () => {
+              const targetString = document.querySelector('div.my-tray .tray-item.search-div input.my-search-input').value;
+              const predicate = GROUPIND_PREDICATE.BY_STRING_IGNORE_CASE(targetString);
+              const groupedCommentCards = findCommentCardsByPredicate(predicate);
+              shrinkByCondition(groupedCommentCards);
+          }
         );
 
         return wrapIntoTrayItem([searchInputInTooltip, searchBtn], TRAY_ITEM_TYPE.SEARCH_DIV);
@@ -718,9 +761,9 @@ function createStyle () {
     // Functions for finding the first pure text div
     function isPureTextElement(node) {
         return node.nodeType === Node.TEXT_NODE
-            || node.nodeType === Node.ELEMENT_NODE
-            && !node.querySelector('img')
-            && node.innerHTML !== '<br>';
+          || node.nodeType === Node.ELEMENT_NODE
+          && !node.querySelector('img')
+          && node.innerHTML !== '<br>';
     }
 
 
