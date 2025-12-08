@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.12-beta
+// @version      0.9.13-beta
 // @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
 // @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
@@ -355,12 +355,20 @@ function createStyle () {
     document.head.appendChild(style);
 }
 
-// class InitConfig {
-//     constructor(maxTry = 6, tryInterval = 500) {
-//         this.maxTry = maxTry;
-//         this.tryInterval = tryInterval;
-//     }
-// }
+class InitConfig {
+    constructor(maxTry = 6, tryInterval = 500) {
+        this.maxTry = maxTry;
+        this.tryInterval = tryInterval;
+    }
+}
+
+class InitializableWrapper {
+    constructor(element, label, initializer) {
+        this.element = element;
+        this.label = label;
+        this.initializer = initializer;
+    }
+}
 
 /**
  * Application constants
@@ -404,28 +412,42 @@ const CONSTANTS = Object.freeze({
 //     document.body.appendChild(tray);
 // }
 
+class InitializableTool {
+    constructor(
+      element = null,
+      eventListener = () => false,
+      initState = false,
+      initSuccessCallback = null,
+      initFailCallback = null,
+      initConfig = new InitConfig(),
+      elementLabel = null,
+    ) {
+        this.element = element;
+        this.eventListener = eventListener;
+        this.initState = initState;
+        this.initSuccessCallback = initSuccessCallback;
+        this.initFailCallback = initFailCallback;
+        this.initConfig = initConfig;
+        this.elementLabel = elementLabel;
+    }
 
-// function createInitializer(initCallback, initState, initConfig = new InitConfig()) {
-//     const initializer = new Promise((resolve, reject) => {
-//         let tryCount = 1;
-//         const intervalId = setInterval(() => {
-//             const success = initCallback(initState);
-//             if (success) {
-//                 resolve();
-//                 clearInterval(intervalId);
-//             } else if (tryCount >= initConfig.maxTry) {
-//                 clearInterval(intervalId);
-//                 reject();
-//             } else {
-//                 tryCount++;
-//             }
-//         }, initConfig.tryInterval);
-//     }).then(() => {
-//         sw.checked = true;
-//     }).catch(() => {
-//         sw.checked = false;
-//     });
-// }
+    whenSuccess(res) {
+        if (this.initSuccessCallback) {
+            this.initSuccessCallback(this.element, res);
+        } else {
+            this.element.checked = res;
+        }
+    }
+    whenFail(error) {
+        console.warn(`Initialization failed`, this.element, error);
+        if (this.initFailCallback) {
+            this.initFailCallback(this.element, error);
+        } else {
+            this.element.checked = false;
+        }
+    }
+}
+
 
 
 const SETTINGS = {
@@ -434,6 +456,7 @@ const SETTINGS = {
     taskBarSwitched: false,
     ...GM_getValue('SETTINGS')
 };
+console.info(SETTINGS);
 
 const Actions = {
     toggleTray(tray) {
@@ -643,39 +666,31 @@ const ElementCreator = {
     },
 
     /**
-     * Create a toggle switch element whose checked prop will be directly linked to callback execution result
-     * @property switchId Element ID for the switch
-     * @property switchCallback The callback for the switch's onchange event, return success flag
-     * @property labelText Text of the label
-     * @property labelTooltip Description that pops up when pointing at the label
-     * @property state The initial state that will be fed to the switchCallback
-     * @property initConfig a config object setting maxTry and tryInterval for the initializer
-     * @returns  An object of the switch itself, the label, and a promise that does the state initialization
+     * Create a Promise that tries to call the initialize function of an InitializableTool object
+     * @param {InitializableTool} initializableTool
+     * @return {Promise<void>} A promise resolves to initState when initialize function executed successfully
      */
-    createStatefulSwitch(switchId, checkedByDefault, switchCallback, labelText, labelTooltip, state, initConfig = { maxTry: 6, tryInterval: 500 }) {
-        const label = this.createSwitchLabel(switchId, labelText, labelTooltip);
-        const sw = this.createSwitchElement(switchId, checkedByDefault, switchCallback);
-        const initializer = !state ? null : new Promise((resolve, reject) => {
+    createInitializer(initializableTool = new InitializableTool()) {
+        return new Promise((resolve, reject) => {
             let tryCount = 1;
             const intervalId = setInterval(() => {
-                const success = switchCallback(state);
+                const success = initializableTool.eventListener(initializableTool.initState);
                 if (success) {
-                    resolve();
                     clearInterval(intervalId);
-                } else if (tryCount >= initConfig.maxTry) {
+                    resolve(initializableTool.initState);
+                } else if (tryCount >= initializableTool.initConfig.maxTry) {
                     clearInterval(intervalId);
                     reject();
                 } else {
                     tryCount++;
                 }
-            }, initConfig.tryInterval);
-        }).then(() => {
-            sw.checked = true;
-        }).catch(() => {
-            sw.checked = false;
+            }, initializableTool.initConfig.tryInterval);
+        }).then((res) => {
+            console.info(`Successfully init, returning: `, res, initializableTool.element.children[0].id);
+            initializableTool.whenSuccess(res);
+        }).catch(e => {
+            initializableTool.whenFail(e);
         });
-
-        return { label: label, switch: sw, initializer: initializer };
     },
 
 
@@ -692,7 +707,16 @@ const ElementCreator = {
         return btnDiv;
     },
 
-    createSwitchElement(switchId, switched, switchEventCallback) {
+    /**
+     * Create an HTMLLabelElement that looks like a toggle
+     * <ul>
+     *     <li>`checked` property of the inner checkbox element is exposed for easy access</li>
+     * </ul>
+     * @param switchId DOM element ID
+     * @param {function(boolean): boolean} switchEventCallback EventListener bound to checkbox's state, return true when successful
+     * @return {HTMLLabelElement} An HTMLLabel containing a checkbox input
+     */
+    createSwitchElement(switchId, switchEventCallback) {
         const label = document.createElement('label');
         label.classList.add('my-switch');
 
@@ -700,10 +724,6 @@ const ElementCreator = {
         checkbox.setAttribute("type", "checkbox");
         checkbox.addEventListener('change', (event) => switchEventCallback(event.target.checked));
         checkbox.setAttribute('id', switchId);
-        if (switched) {
-            checkbox.checked = true;
-            switchEventCallback(true);
-        }
 
         const slider = document.createElement('div');
         slider.classList.add('my-slider');
@@ -765,65 +785,8 @@ const ElementCreator = {
     }
 };
 
-
-let lastClickedComment = null;
-(function() {
-    'use strict';
-    createStyle();
-
-    const observer = new MutationObserver((_record, _observer) => {
-
-        // Early return if the tray was already there
-        const myTray = document.body.querySelector('div.my-tray');
-        if (myTray) return;
-
-        const tray = ElementCreator.createTray();
-        document.body.appendChild(tray);
-        if (SETTINGS.trayOpened) Actions.toggleTray(tray);
-
-        tray.appendChild(ElementCreator.createTrayToggle());
-        tray.appendChild(ElementCreator.createRefreshButton());
-        tray.appendChild(ElementCreator.createExpandAllButton());
-        tray.appendChild(ElementCreator.createShrinkAllButton());
-        tray.appendChild(ElementCreator.createExpandReactedButton());
-        tray.appendChild(ElementCreator.createShrinkReactedButton());
-        tray.appendChild(ElementCreator.createSearchTool());
-
-
-        // Switch tools
-        const layoutSw = ElementCreator.createStatefulSwitch(
-            'layoutSwitch',
-            false,
-            switchWideLayout,
-            '調整排版',
-            '調整排版，將左側常用的Description及Discussion放大。',
-            SETTINGS.layoutSwitched
-        );
-        const taskBarSw = ElementCreator.createStatefulSwitch(
-            'taskBarSwitch',
-            false,
-            switchTaskBar,
-            '縮小標題',
-            '調整task bar，將不常用的元素隱藏並縮成一行。',
-            SETTINGS.taskBarSwitched
-        );
-        const descLock = ElementCreator.createStatefulSwitch(
-            'descLock',
-            true,
-            toggleDescLock,
-            '描述鎖定',
-            '鎖定 description 的編輯器，避免不小心改動。',
-            true // I want to lock the desc editor onload no matter what
-        );
-
-        tray.appendChild(ElementCreator.wrapIntoTrayItem(
-            [layoutSw.label, layoutSw.switch, taskBarSw.label, taskBarSw.switch, descLock.label, descLock.switch],
-            CONSTANTS.TRAY_ITEM_TYPE.SWITCH_DIV
-        ));
-
-    });
-
-    function switchWideLayout(setToWide = true) {
+const toolsCallbacks = {
+    switchWideLayout(setToWide = true) {
         const gridContainer = document.querySelector('div.work-item-grid.first-column-wide');
         const rightSection = document.querySelector('div.work-item-form-right');
         if (!gridContainer || !rightSection) return false;
@@ -837,9 +800,9 @@ let lastClickedComment = null;
         }
         GM_setValue('SETTINGS', { ...SETTINGS, layoutSwitched: setToWide });
         return true;
-    }
+    },
 
-    function switchTaskBar(foldTaskBar = true) {
+    switchTaskBar(foldTaskBar = true) {
         const workItemFormHeader = document.querySelector('div.work-item-form-header');
         if (!workItemFormHeader) return false;
 
@@ -870,14 +833,14 @@ let lastClickedComment = null;
         }
         GM_setValue('SETTINGS', { ...SETTINGS, taskBarSwitched: foldTaskBar });
         return true;
-    }
+    },
 
-    function locked(e) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-    }
+    toggleDescLock(lock = true) {
+        function locked(e) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
 
-    function toggleDescLock(lock = true) {
         const editor = document.querySelector('div[id^="__bolt-Description"]');
         if (!editor) return false;
         if (lock) {
@@ -898,6 +861,102 @@ let lastClickedComment = null;
         return true;
     }
 
+};
+
+const createObservingTrayCreator = () => new MutationObserver((_record, _observer) => {
+
+    // Early return if the tray was already there
+    const myTray = document.body.querySelector('div.my-tray');
+    if (myTray) return;
+
+    const tray = ElementCreator.createTray();
+    document.body.appendChild(tray);
+    if (SETTINGS.trayOpened) Actions.toggleTray(tray);
+
+    tray.appendChild(ElementCreator.createTrayToggle());
+    tray.appendChild(ElementCreator.createRefreshButton());
+    tray.appendChild(ElementCreator.createExpandAllButton());
+    tray.appendChild(ElementCreator.createShrinkAllButton());
+    tray.appendChild(ElementCreator.createExpandReactedButton());
+    tray.appendChild(ElementCreator.createShrinkReactedButton());
+    tray.appendChild(ElementCreator.createSearchTool());
+
+
+    // Switch tools, wrap into IIFE just for easy folding
+    const layout = (() => {
+        const element = ElementCreator.createSwitchElement(
+            'layoutSwitch',
+            toolsCallbacks.switchWideLayout
+        );
+        const label = ElementCreator.createSwitchLabel(
+            'layoutSwitch',
+            '調整排版',
+            '調整排版，將左側常用的Description及Discussion放大。'
+        );
+        const initializable = new InitializableTool(
+            element,
+            toolsCallbacks.switchWideLayout,
+            SETTINGS.layoutSwitched,
+        )
+        const initializer = ElementCreator.createInitializer(initializable);
+        return { element, label, initializer };
+    })();
+    const taskBar = (() => {
+        const element = ElementCreator.createSwitchElement(
+            'taskBarSwitch',
+            toolsCallbacks.switchTaskBar
+        );
+        const label = ElementCreator.createSwitchLabel(
+            'taskBarSwitch',
+            '縮小標題',
+            '調整task bar，將不常用的元素隱藏並縮成一行。'
+        );
+        const initializable = new InitializableTool(
+            element,
+            toolsCallbacks.switchTaskBar,
+            SETTINGS.taskBarSwitched,
+        )
+        const initializer = ElementCreator.createInitializer(initializable);
+        return { element, label, initializer };
+    })();
+    const desc = (() => {
+        const element = ElementCreator.createSwitchElement('descLock', toolsCallbacks.toggleDescLock);
+        const label = ElementCreator.createSwitchLabel(
+            'descLock',
+            '描述鎖定',
+            '鎖定 description 的編輯器，避免不小心改動。'
+        );
+        const descIt = new InitializableTool(
+            element,
+            toolsCallbacks.toggleDescLock,
+            true,
+            function(element, res) {
+                element.checked = res;
+            },
+            function(element, error) {
+                element.checked = false;
+            },
+        )
+        const initializer = ElementCreator.createInitializer(descIt);
+        return { element, label, initializer };
+    })();
+
+    tray.appendChild(ElementCreator.wrapIntoTrayItem(
+        [layout.label, layout.element, taskBar.label, taskBar.element, desc.label, desc.element],
+        CONSTANTS.TRAY_ITEM_TYPE.SWITCH_DIV
+    ));
+
+});
+
+
+
+
+let lastClickedComment = null;
+(function() {
+    'use strict';
+    createStyle();
+
+    const observer = createObservingTrayCreator();
 
     observer.observe(document.body, {
         childList: true,
