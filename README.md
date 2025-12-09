@@ -15,7 +15,7 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 改善評論區 (discussion) 的呈現方式，可以將每個評論區塊折疊起來節省你的螢幕空間。
 
 1. 依照特定條件展開或是摺疊特定評論。
-2. 依文字搜尋評論。
+2. 依文字搜尋並開/合評論。
 
 ### 2. 描述編輯器上鎖工具
 將描述區 (description) 鎖上，防止意外編輯，並新增一個上鎖/解鎖按鈕。
@@ -25,15 +25,12 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 
 ---
 ## Installation
-1.  **(推薦)** 從 GreasyFork 安裝。[連結](https://greasyfork.org/zh-TW/scripts/552528)。
+1.  **(推薦)** 從 GreasyFork 安裝。[連結](https://greasyfork.org/zh-TW/scripts/558405-betterazuredevops)。
 2. 到 releases 下載打包好的 zip 檔，在 tampermonkey 使用匯出及匯入工具進行匯入。
 
 ---
 ## Roadmap
 
-#### DiscussionFolder (評論區摺疊工具)
-#### DescriptionLocker (描述編輯器上鎖工具)
-#### HeaderFolder (標題列摺疊工具)
 - [x] 可開合的工具箱。
 - [x] 全部開啟或關閉已反應的評論。
 - [x] 整合其他腳本到工具托盤中。
@@ -46,16 +43,14 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 - [ ] comment 書籤功能。
 - [ ] 自定義及設定畫面。
   - [ ] 工具盤增加設定頁。
-- [x] `DescriptionLocker (描述編輯器上鎖工具)` 基於重新綁定 eventListener 的 DescriptionLocker。
 - [x] 修正會超出編輯區塊的欄寬編輯方塊。
-- [x] `HeaderFolder (標題列摺疊工具)` 編輯描述的時候自動展開，以便按下儲存按鈕。
+- [x] 編輯描述的時候自動展開，以便按下儲存按鈕。
 - [ ] 按下 reaction 自動 refresh(難產)
 
 ---
 ## Known issues
-- 頁面載入時無法自動執行更新按鈕的功能，未來將會用MutationObserver進行動態檢測並自動執行。
-- 切換到其他功能分頁時，腳本產生的按鈕會消失
-- 由於不明原因，部分 comment 會被包在另一層 div 中造成折疊函式判斷錯誤而無法進行摺疊
+- 由於CSR的原因，切換到其他功能分頁時，部分元件功能可能會失效
+- 由於不明原因，編輯器有時會把 comment 被包在另一層 div 中造成折疊函式判斷錯誤而無法進行摺疊
 
 ---
 ## License
