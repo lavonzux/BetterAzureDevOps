@@ -15,51 +15,60 @@
 
 // 工具盤預設打開
 const TRAY_OPEN_BY_DEFAULT = true;
-// 工具盤背景顏色
-const TRAY_BACKGROUND_COLOR = '#adfe';
-// 工具箱開關按鈕顏色
-const TRAY_TOGGLE_COLOR = '#f9a';
-// 工具箱按鈕文字顏色
-const TOOL_BUTTON_TEXT_COLOR = 'white';
-// 工具箱按鈕背景顏色
-const TOOL_BUTTON_BG_COLOR = '#0078d4';
-// 工具箱按鈕背景:hover顏色
-const TOOL_BUTTON_BG_HOVER_COLOR = '#005a9e';
 
-// 未回應評論的摺疊按鈕
-const NOT_REACTED_COLLAPSE_BTN_CONTENT = '🔥';
-// 已回應評論的摺疊按鈕
-const REACTED_COLLAPSE_BTN_CONTENT = '↕️';
+const THEME = Object.freeze({
+    CORNER: { // 圓角效果為 calc(ROUND_CORNER * CORNER_RADIUS)
+        ENABLE: 1,// 圓角(0:關 | 1:開)
+        RADIUS: '1rem'// 圓角半徑
+    },
+    TRAY: {
+        BG_COLOR: '#adfe', // 工具盤背景顏色
+        TOGGLE_COLOR: '#f9a', // 工具箱開關按鈕顏色
 
-// 版面控制開關相關設定
-// 切換速度
-const SWITCH_TRANSITION_DURATION = '0.2s';
-// 開啟時背景顏色
-const SWITCH_ON_BACKGROUND_COLOR = '#0078d4';
-// 關閉時背景顏色
-const SWITCH_OFF_BACKGROUND_COLOR = '#aaaa';
+        // 圓角效果為 calc(ROUND_CORNER * CORNER_RADIUS)
+        ROUND_CORNER: 1, // 圓角(0:關 | 1:開)
+        CORNER_RADIUS: '1rem' // 圓角半徑
+    },
+    TOOL_BUTTON: {
+        TEXT_COLOR: 'white', // 工具箱按鈕文字顏色
+        BG_COLOR: '#0078d4', // 工具箱按鈕背景顏色
+        BG_HOVER_COLOR: '#005a9e', // 工具箱按鈕背景:hover顏色
 
-// Switch文字顏色
-const SWITCH_LABEL_TEXT_COLOR = '#000';
+        // 圓角效果為 calc(ROUND_CORNER * CORNER_RADIUS)
+        ROUND_CORNER: 1, // 圓角(0:關 | 1:開)
+        CORNER_RADIUS: '1rem' // 圓角半徑
+    },
+    COLLAPSE_BUTTON: {
+        NOT_REACTED_GLYPH: '🔥', // 未回應評論的摺疊按鈕
+        REACTED_GLYPH: '↕️', // 已回應評論的摺疊按鈕
+    },
+    SWITCH: {
+        TRANSITION_DURATION: '0.2s', // 切換速度
+        ON_BACKGROUND_COLOR: '#0078d4', // 開啟時背景顏色
+        OFF_BACKGROUND_COLOR: '#aaaa', // 關閉時背景顏色
+        LABEL_TEXT_COLOR: '#000', // Switch文字顏色
+        LABEL_TEXT_SIZE: '1.1rem', // 標籤文字大小
+    }
+});
 
 function createStyle () {
     const style = document.createElement('style');
     style.innerHTML = `
         :root {
             --tray-width: 28rem;
-            --tray-height: 17rem;
+            --tray-height: 18rem;
             --corner-size: 2rem;
 
             /* CSS variables for the toggle switch */
             --switch-width: 4rem;
             --switch-height: 2rem;
-            --switch-transition: ${SWITCH_TRANSITION_DURATION};
+            --switch-transition: ${THEME.SWITCH.TRANSITION_DURATION};
             --knob-gap: 4px;
         }
 
-        /* CSS classes for my tooltray */
+        /* CSS classes for my tool tray */
         .my-tray {
-            background-color: ${TRAY_BACKGROUND_COLOR};
+            background-color: ${THEME.TRAY.BG_COLOR};
             position: absolute;
             bottom: 1rem;
             right: 1rem;
@@ -94,7 +103,7 @@ function createStyle () {
         /* Tray expanded state */
         .my-tray.my-tray-expand {
             overflow: visible;
-            border-radius: 1rem 1rem 0 1rem;
+            border-radius: calc(${THEME.CORNER.ENABLE} * ${THEME.CORNER.RADIUS}) calc(${THEME.CORNER.ENABLE} * ${THEME.CORNER.RADIUS}) 0 calc(${THEME.CORNER.ENABLE} * ${THEME.CORNER.RADIUS});
             width: var(--tray-width);
             height: var(--tray-height);
             animation: expand 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -184,12 +193,12 @@ function createStyle () {
           padding: 6px 12px;
           font-size: 1rem;
           border: 0;
-          border-radius: 1rem;
-          color: ${TOOL_BUTTON_TEXT_COLOR};
+          border-radius: calc(${THEME.CORNER.ENABLE} * ${THEME.CORNER.RADIUS});
+          color: ${THEME.TOOL_BUTTON.TEXT_COLOR};
           cursor: pointer;
           transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out 0.4s;
           transform-origin: top left;
-          background-color: ${TOOL_BUTTON_BG_COLOR};
+          background-color: ${THEME.TOOL_BUTTON.BG_COLOR};
           white-space: nowrap;
           display: flex;
           justify-content: center;
@@ -197,7 +206,7 @@ function createStyle () {
           overflow: hidden;
         }
         .my-tool-button:hover {
-          background-color: ${TOOL_BUTTON_BG_HOVER_COLOR};
+          background-color: ${THEME.TOOL_BUTTON.BG_HOVER_COLOR};
         }
 
         .my-tray-shrunk .my-tool-button {
@@ -266,11 +275,8 @@ function createStyle () {
           text-align: center;
         }
 
-
-
-
         .my-tray .my-tray-toggle {
-            background-color: ${TRAY_TOGGLE_COLOR};
+            background-color: ${THEME.TRAY.TOGGLE_COLOR};
             position: absolute;
             width: var(--corner-size);
             height: var(--corner-size);
@@ -336,10 +342,10 @@ function createStyle () {
         }
 
         input:checked + .my-slider {
-          background-color: ${SWITCH_ON_BACKGROUND_COLOR};
+          background-color: ${THEME.SWITCH.ON_BACKGROUND_COLOR};
         }
         input:not(:checked) + .my-slider {
-          background-color: ${SWITCH_OFF_BACKGROUND_COLOR};
+          background-color: ${THEME.SWITCH.OFF_BACKGROUND_COLOR};
         }
 
         input:checked + .my-slider:before {
@@ -347,8 +353,8 @@ function createStyle () {
         }
 
         .my-sw-label {
-          font-size: 1.1rem;
-          color: ${SWITCH_LABEL_TEXT_COLOR};
+          font-size: ${THEME.SWITCH.LABEL_TEXT_SIZE};
+          color: ${THEME.SWITCH.LABEL_TEXT_COLOR};
           white-space: nowrap;
         }
     `;
@@ -356,61 +362,16 @@ function createStyle () {
 }
 
 class InitConfig {
+    /**
+     * Create a config for initializers
+     * @param {number} maxTry Max count before giving up
+     * @param {number} tryInterval Retry interval in ms
+     */
     constructor(maxTry = 6, tryInterval = 500) {
         this.maxTry = maxTry;
         this.tryInterval = tryInterval;
     }
 }
-
-class InitializableWrapper {
-    constructor(element, label, initializer) {
-        this.element = element;
-        this.label = label;
-        this.initializer = initializer;
-    }
-}
-
-/**
- * Application constants
- * @namespace CONSTANTS
- * @readonly
- */
-const CONSTANTS = Object.freeze({
-    /**
-     * Predicates for asserting if a comment card should be folded
-     * @namespace CONSTANTS.GROUPING_PREDICATES
-     * @memberOf CONSTANTS
-     */
-    GROUPING_PREDICATES: {
-        /**
-         * Return a comment cards filtering function that search for certain string, ignoring case
-         * @memberOf CONSTANTS.GROUPING_PREDICATES
-         * @param stringToFind
-         * @return {function(*): boolean}
-         */
-        BY_STRING_IGNORE_CASE: (stringToFind) => (commentCard) => (!commentCard.textContent.toLowerCase().includes(stringToFind?.trim() || '')),
-        /**
-         * Tell if there is a reaction in a comment card by looking for `reaction-statusbar-placeholder`
-         * @param {HTMLElement} commentCard
-         * @return {boolean}
-         */
-        BY_REACTION_EXIST: (commentCard) => commentCard.querySelector('.reaction-statusbar-placeholder') !== null
-    },
-    TRAY_ITEM_TYPE: {
-        REFRESH_DIV: 'refresh-div',
-        SEARCH_DIV: 'search-div',
-        SWITCH_DIV: 'switch-div'
-    }
-});
-
-// function createTray(state, initConfig = { maxTry: 6, tryInterval: 500 }) {
-//     const myTray = document.body.querySelector('div.my-tray');
-//     if (myTray) return;
-//
-//     const tray = document.createElement('div');
-//     tray.classList.add('my-tray', 'my-tray-shrunk');
-//     document.body.appendChild(tray);
-// }
 
 class InitializableTool {
     constructor(
@@ -420,7 +381,6 @@ class InitializableTool {
       initSuccessCallback = null,
       initFailCallback = null,
       initConfig = new InitConfig(),
-      elementLabel = null,
     ) {
         this.element = element;
         this.eventListener = eventListener;
@@ -428,7 +388,6 @@ class InitializableTool {
         this.initSuccessCallback = initSuccessCallback;
         this.initFailCallback = initFailCallback;
         this.initConfig = initConfig;
-        this.elementLabel = elementLabel;
     }
 
     whenSuccess(res) {
@@ -439,7 +398,8 @@ class InitializableTool {
         }
     }
     whenFail(error) {
-        console.warn(`Initialization failed`, this.element, error);
+        console.warn(`Initialization failed`, this.element);
+        console.warn(`Error message`, error);
         if (this.initFailCallback) {
             this.initFailCallback(this.element, error);
         } else {
@@ -448,26 +408,18 @@ class InitializableTool {
     }
 }
 
-
-
-const SETTINGS = {
-    trayOpened: TRAY_OPEN_BY_DEFAULT,
-    layoutSwitched: false,
-    taskBarSwitched: false,
-    ...GM_getValue('SETTINGS')
-};
-console.info(SETTINGS);
-
 const Actions = {
     toggleTray(tray) {
         if (tray.classList.contains('my-tray-shrunk')) {
             tray.classList.remove('my-tray-shrunk');
             tray.classList.add('my-tray-expand');
             GM_setValue('SETTINGS', { ...SETTINGS, trayOpened: true });
+            SETTINGS['trayOpened'] = true;
         } else {
             tray.classList.remove('my-tray-expand');
             tray.classList.add('my-tray-shrunk');
             GM_setValue('SETTINGS', { ...SETTINGS, trayOpened: false });
+            SETTINGS['trayOpened'] = false;
         }
     },
 
@@ -565,6 +517,8 @@ const Actions = {
 };
 
 const ElementCreator = {
+
+
     createTray() {
         const tray = document.createElement('div');
         tray.classList.add('my-tray', 'my-tray-shrunk');
@@ -686,7 +640,6 @@ const ElementCreator = {
                 }
             }, initializableTool.initConfig.tryInterval);
         }).then((res) => {
-            console.info(`Successfully init, returning: `, res, initializableTool.element.children[0].id);
             initializableTool.whenSuccess(res);
         }).catch(e => {
             initializableTool.whenFail(e);
@@ -700,7 +653,7 @@ const ElementCreator = {
         btnDiv.classList.add('my-expand-button-div');
 
         const btn = document.createElement('button');
-        btn.innerText = reacted ? REACTED_COLLAPSE_BTN_CONTENT : NOT_REACTED_COLLAPSE_BTN_CONTENT;
+        btn.innerText = reacted ? THEME.COLLAPSE_BUTTON.REACTED_GLYPH : THEME.COLLAPSE_BUTTON.NOT_REACTED_GLYPH;
         btn.classList.add('my-expand-button');
         btnDiv.appendChild(btn);
 
@@ -799,6 +752,7 @@ const toolsCallbacks = {
             document.querySelector('div.work-item-form-right').style.gridArea = null;
         }
         GM_setValue('SETTINGS', { ...SETTINGS, layoutSwitched: setToWide });
+        SETTINGS['layoutSwitched'] = setToWide;
         return true;
     },
 
@@ -817,7 +771,7 @@ const toolsCallbacks = {
             // 3. add flex-grow to the second child
             workItemFormHeader.children[1].classList.add('flex-grow');
 
-            // 4. hide useless elements in the thrid child
+            // 4. hide useless elements in the third child
             workItemFormHeader.childNodes[2].childNodes[1].classList.add('hidden');
             workItemFormHeader.childNodes[2].childNodes[2].classList.add('hidden');
             workItemFormHeader.childNodes[2].childNodes[3].classList.add('hidden');
@@ -832,29 +786,30 @@ const toolsCallbacks = {
             workItemFormHeader.childNodes[2].childNodes[3].classList.remove('hidden');
         }
         GM_setValue('SETTINGS', { ...SETTINGS, taskBarSwitched: foldTaskBar });
+        SETTINGS['taskBarSwitched'] = foldTaskBar;
         return true;
     },
 
-    toggleDescLock(lock = true) {
-        function locked(e) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-        }
+    locked(e) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+    },
 
+    toggleDescLock(lock = true) {
         const editor = document.querySelector('div[id^="__bolt-Description"]');
         if (!editor) return false;
         if (lock) {
             //alert(`Editor is now locked........`);
             //editor.contentEditable = 'false';
-            editor.addEventListener('mousedown', locked, true);
-            editor.addEventListener('mouseup', locked, true);
+            editor.addEventListener('mousedown', toolsCallbacks.locked, true); // Cannot use this, will be re-bound
+            editor.addEventListener('mouseup', toolsCallbacks.locked, true);
             editor.style.cursor = 'not-allowed';
             editor.title = '編輯功能已鎖定，關閉工具盤右下的描述鎖定以解除。';
         } else {
             //alert(`Editor is UNLOCKED!!!`);
             //editor.contentEditable = 'true';
-            editor.removeEventListener('mousedown', locked, true);
-            editor.removeEventListener('mouseup', locked, true);
+            editor.removeEventListener('mousedown', toolsCallbacks.locked, true);
+            editor.removeEventListener('mouseup', toolsCallbacks.locked, true);
             editor.style.cursor = null;
             editor.removeAttribute('title');
         }
@@ -863,93 +818,172 @@ const toolsCallbacks = {
 
 };
 
-const createObservingTrayCreator = () => new MutationObserver((_record, _observer) => {
-
-    // Early return if the tray was already there
-    const myTray = document.body.querySelector('div.my-tray');
-    if (myTray) return;
-
-    const tray = ElementCreator.createTray();
-    document.body.appendChild(tray);
-    if (SETTINGS.trayOpened) Actions.toggleTray(tray);
-
-    tray.appendChild(ElementCreator.createTrayToggle());
-    tray.appendChild(ElementCreator.createRefreshButton());
-    tray.appendChild(ElementCreator.createExpandAllButton());
-    tray.appendChild(ElementCreator.createShrinkAllButton());
-    tray.appendChild(ElementCreator.createExpandReactedButton());
-    tray.appendChild(ElementCreator.createShrinkReactedButton());
-    tray.appendChild(ElementCreator.createSearchTool());
-
-
-    // Switch tools, wrap into IIFE just for easy folding
-    const layout = (() => {
-        const element = ElementCreator.createSwitchElement(
-            'layoutSwitch',
-            toolsCallbacks.switchWideLayout
-        );
-        const label = ElementCreator.createSwitchLabel(
-            'layoutSwitch',
-            '調整排版',
-            '調整排版，將左側常用的Description及Discussion放大。'
-        );
-        const initializable = new InitializableTool(
-            element,
-            toolsCallbacks.switchWideLayout,
-            SETTINGS.layoutSwitched,
-        )
-        const initializer = ElementCreator.createInitializer(initializable);
-        return { element, label, initializer };
-    })();
-    const taskBar = (() => {
-        const element = ElementCreator.createSwitchElement(
-            'taskBarSwitch',
-            toolsCallbacks.switchTaskBar
-        );
-        const label = ElementCreator.createSwitchLabel(
-            'taskBarSwitch',
-            '縮小標題',
-            '調整task bar，將不常用的元素隱藏並縮成一行。'
-        );
-        const initializable = new InitializableTool(
-            element,
-            toolsCallbacks.switchTaskBar,
-            SETTINGS.taskBarSwitched,
-        )
-        const initializer = ElementCreator.createInitializer(initializable);
-        return { element, label, initializer };
-    })();
-    const desc = (() => {
-        const element = ElementCreator.createSwitchElement('descLock', toolsCallbacks.toggleDescLock);
-        const label = ElementCreator.createSwitchLabel(
-            'descLock',
-            '描述鎖定',
-            '鎖定 description 的編輯器，避免不小心改動。'
-        );
-        const descIt = new InitializableTool(
-            element,
-            toolsCallbacks.toggleDescLock,
-            true,
-            function(element, res) {
-                element.checked = res;
-            },
-            function(element, error) {
-                element.checked = false;
-            },
-        )
-        const initializer = ElementCreator.createInitializer(descIt);
-        return { element, label, initializer };
-    })();
-
-    tray.appendChild(ElementCreator.wrapIntoTrayItem(
-        [layout.label, layout.element, taskBar.label, taskBar.element, desc.label, desc.element],
-        CONSTANTS.TRAY_ITEM_TYPE.SWITCH_DIV
-    ));
-
+/**
+ * Application constants
+ * @namespace CONSTANTS
+ * @readonly
+ */
+const CONSTANTS = Object.freeze({
+    /**
+     * Predicates for asserting if a comment card should be folded
+     * @namespace CONSTANTS.GROUPING_PREDICATES
+     * @memberOf CONSTANTS
+     */
+    GROUPING_PREDICATES: {
+        /**
+         * Return a comment cards filtering function that search for certain string, ignoring case
+         * @memberOf CONSTANTS.GROUPING_PREDICATES
+         * @param stringToFind
+         * @return {function(*): boolean}
+         */
+        BY_STRING_IGNORE_CASE: (stringToFind) => (commentCard) => (!commentCard.textContent.toLowerCase().includes(stringToFind?.trim() || '')),
+        /**
+         * Tell if there is a reaction in a comment card by looking for `reaction-statusbar-placeholder`
+         * @param {HTMLElement} commentCard
+         * @return {boolean}
+         */
+        BY_REACTION_EXIST: (commentCard) => commentCard.querySelector('.reaction-statusbar-placeholder') !== null
+    },
+    TRAY_ITEM_TYPE: {
+        REFRESH_DIV: 'refresh-div',
+        SEARCH_DIV: 'search-div',
+        SWITCH_DIV: 'switch-div'
+    }
 });
 
+const SETTINGS = {
+    trayOpened: TRAY_OPEN_BY_DEFAULT,
+    layoutSwitched: false,
+    taskBarSwitched: false,
+    ...GM_getValue('SETTINGS')
+};
 
 
+function createObservingTrayCreator() {
+    return new MutationObserver((_record, observer) => {
+
+        // Disconnect the observer and early return if the tray was already there
+        if (document.body.querySelector('div.my-tray')) {
+            observer.disconnect();
+            return;
+        }
+
+        const tray = ElementCreator.createTray();
+        document.body.appendChild(tray);
+        if (SETTINGS.trayOpened) Actions.toggleTray(tray);
+
+        tray.appendChild(ElementCreator.createTrayToggle());
+        tray.appendChild(ElementCreator.createRefreshButton());
+        tray.appendChild(ElementCreator.createExpandAllButton());
+        tray.appendChild(ElementCreator.createShrinkAllButton());
+        tray.appendChild(ElementCreator.createExpandReactedButton());
+        tray.appendChild(ElementCreator.createShrinkReactedButton());
+        tray.appendChild(ElementCreator.createSearchTool());
+
+
+        // Switch tools, wrap into IIFE just for easy folding
+        const layout = (() => {
+            const element = ElementCreator.createSwitchElement(
+                'layoutSwitch',
+                toolsCallbacks.switchWideLayout
+            );
+            const label = ElementCreator.createSwitchLabel(
+                'layoutSwitch',
+                '調整排版',
+                '調整排版，將左側常用的Description及Discussion放大。'
+            );
+            const initializable = new InitializableTool(
+                element,
+                toolsCallbacks.switchWideLayout,
+                SETTINGS.layoutSwitched,
+            )
+            const initializer = ElementCreator.createInitializer(initializable);
+            return {element, label, initializer};
+        })();
+        const taskBar = (() => {
+            const element = ElementCreator.createSwitchElement(
+                'taskBarSwitch',
+                toolsCallbacks.switchTaskBar
+            );
+            const label = ElementCreator.createSwitchLabel(
+                'taskBarSwitch',
+                '縮小標題',
+                '調整task bar，將不常用的元素隱藏並縮成一行。'
+            );
+            const initializable = new InitializableTool(
+                element,
+                toolsCallbacks.switchTaskBar,
+                SETTINGS.taskBarSwitched,
+            )
+            const initializer = ElementCreator.createInitializer(initializable);
+            return {element, label, initializer};
+        })();
+        const desc = (() => {
+            const element = ElementCreator.createSwitchElement('descLock', toolsCallbacks.toggleDescLock);
+            const label = ElementCreator.createSwitchLabel(
+                'descLock',
+                '描述鎖定',
+                '鎖定 description 的編輯器，避免不小心改動。'
+            );
+            const descIt = new InitializableTool(
+                element,
+                toolsCallbacks.toggleDescLock,
+                true,
+                function (element, res) {
+                    element.checked = res;
+                },
+                function (element, _error) {
+                    element.checked = false;
+                },
+            )
+            const initializer = ElementCreator.createInitializer(descIt);
+            return {element, label, initializer};
+        })();
+
+        tray.appendChild(ElementCreator.wrapIntoTrayItem(
+            [layout.label, layout.element, taskBar.label, taskBar.element, desc.label, desc.element],
+            CONSTANTS.TRAY_ITEM_TYPE.SWITCH_DIV
+        ));
+
+
+        // Automatically refresh comment cards
+        const autoRefresh = new InitializableTool(
+            // No need to reflect init result to any element
+            null,
+            // Directly defines the callback for now, refer to `createRefreshButton` (line 537) for original codes
+            () => {
+                const groupByReacted = Actions.findCommentCardsByPredicate(CONSTANTS.GROUPING_PREDICATES.BY_REACTION_EXIST);
+                if (groupByReacted.true.length + groupByReacted.false.length === 0) {
+                    return false;
+                }
+
+                Actions.refreshCommentCards(groupByReacted.true, true);
+                Actions.refreshCommentCards(groupByReacted.false, false);
+                Actions.shrinkByCondition(groupByReacted);
+
+                return true;
+            },
+            // No initial state for now
+            true,
+            (_ele, _res) => {},
+            (_ele, _err) => {},
+            new InitConfig(5, 800)
+        );
+        ElementCreator.createInitializer(autoRefresh).then(r => r);
+        // Finally disconnect
+        observer.disconnect();
+    });
+}
+
+function createBodyObserver() {
+    return new MutationObserver((_record, _observer) => {
+        const editor = document.querySelector('[id^=__bolt-Description] .work-item-form-control-wrapper .work-item-form-control-content .html-editor .focus-out-shell');
+        if (!editor) return;
+
+        editor.style.clipPath = 'border-box';
+        // observer.disconnect(); // Not disconnecting, for page re-render
+    });
+}
 
 let lastClickedComment = null;
 (function() {
@@ -957,8 +991,13 @@ let lastClickedComment = null;
     createStyle();
 
     const observer = createObservingTrayCreator();
-
     observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    const bodyObserver = createBodyObserver();
+    bodyObserver.observe(document.body, {
         childList: true,
         subtree: true
     });
