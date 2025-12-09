@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         評論區摺疊工具
 // @namespace    https://github.com/lavonzux/BetterAzureDevOps
-// @version      0.9.13-beta
+// @version      1.0.0-beta
 // @description  在畫面右下角增加一工具箱，用以摺疊Discussion區塊中的comment卡片。
 // @author       Anthony.Mai
-// @match        https://dev.azure.com/fubonfinance/SYS_GA/_workitems/edit*
+// @match        https://dev.azure.com/*/_workitems/edit*
 // @icon         https://cdn.vsassets.io/content/icons/favicon.ico
 // @grant        GM_getValue
 // @grant        GM_setValue

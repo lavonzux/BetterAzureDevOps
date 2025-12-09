@@ -1,5 +1,5 @@
 # BetterAzureDevOps
-A Tampermonkey script that makes Azure DevOps's work item page looks better. 
+A Tampermonkey script that enhence UX of Azure DevOps's work item page
 
 
 不小心點到描述區就改到東西了嗎?<br>
@@ -11,15 +11,16 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 ---
 ## Features
 
-這個 Repo 目前包含以下三個 Script
-
-### 評論區摺疊工具
+### 1. 評論區摺疊工具
 改善評論區 (discussion) 的呈現方式，可以將每個評論區塊折疊起來節省你的螢幕空間。
 
-### 描述編輯器上鎖工具
+1. 依照特定條件展開或是摺疊特定評論。
+2. 依文字搜尋評論。
+
+### 2. 描述編輯器上鎖工具
 將描述區 (description) 鎖上，防止意外編輯，並新增一個上鎖/解鎖按鈕。
 
-### 標題列摺疊工具
+### 3. 標題列摺疊工具
 將上方不常用的 task 縮小，節省螢幕空間讓你的螢幕可以塞的下更多的工項 comment。
 
 ---
@@ -31,46 +32,27 @@ comment 太多不知道哪些做完哪些還沒嗎?<br>
 ## Roadmap
 
 #### DiscussionFolder (評論區摺疊工具)
+#### DescriptionLocker (描述編輯器上鎖工具)
+#### HeaderFolder (標題列摺疊工具)
 - [x] 可開合的工具箱。
 - [x] 全部開啟或關閉已反應的評論。
 - [x] 整合其他腳本到工具托盤中。
     - [x] `DescriptionLocker (描述編輯器上鎖工具)` 
     - [x] `HeaderFolder (標題列摺疊工具)`
-- [ ] 把 stateful initializer 應用到 refresh button
-- [ ] 按下 reaction 自動 refresh
+- [x] 自動更新並在評論卡片增加摺疊按鈕
+- [x] 抽出CSS樣式提供客製化。
+- [ ] 黑暗模式。
 - [ ] 跳到下一個展開的評論。
 - [ ] comment 書籤功能。
 - [ ] 自定義及設定畫面。
-  - [ ] 抽出CSS樣式提供客製化。
   - [ ] 工具盤增加設定頁。
- 
-#### DescriptionLocker (描述編輯器上鎖工具)
-- [ ] `DescriptionLocker (描述編輯器上鎖工具)` 基於重新綁定 eventListener 的 DescriptionLocker。
-  - ~~會造成無法滾動檢視內容。~~
-  - 找到方法了，可以重新綁定mousedown & mouseup 事件來打斷原始事件。
-  - 筆記:
-    ```javascript
-    function locked(e) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-    }
-    const editor = document.querySelector('div[id^="__bolt-Description"]');
-    editor.addEventListener('mousedown', locked, true);
-    editor.addEventListener('mouseup', locked, true);
-    ```
-- [ ] `DescriptionLocker (描述編輯器上鎖工具)` 修正會超出編輯區塊的欄寬編輯器。
-
-#### HeaderFolder (標題列摺疊工具)
-- [ ] `HeaderFolder (標題列摺疊工具)` 編輯描述的時候自動展開，以便按下儲存按鈕。
-
----
-## Versions
-- 3個工具有各自的版本號，基本上以 DiscussionFolder (評論區摺疊工具) 的版本為主。
-- 全部整合到同一個工具後會正式 release 為 v1.0。
+- [x] `DescriptionLocker (描述編輯器上鎖工具)` 基於重新綁定 eventListener 的 DescriptionLocker。
+- [x] 修正會超出編輯區塊的欄寬編輯方塊。
+- [x] `HeaderFolder (標題列摺疊工具)` 編輯描述的時候自動展開，以便按下儲存按鈕。
+- [ ] 按下 reaction 自動 refresh(難產)
 
 ---
 ## Known issues
-- 頁面載入時無法自動執行更新按鈕的功能
 - 切換到其他功能分頁時，腳本產生的按鈕會消失
 - 部分 comment 無法進行摺疊
 

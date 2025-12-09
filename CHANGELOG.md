@@ -3,6 +3,23 @@
 
 ---
 
+## [1.0.0-beta] 2025-12-09
+
+---
+
+### Added
+- Implemented generic initializer
+- Integraged WidthBar fix
+- Centralized theme config object
+- Implemented automatic card refresh
+- Added InitializableTool class for reflective initialization
+
+### Changed
+- Codes heavily restructured
+
+### Fixed
+- Setting not being updated correctly when switch toggles 
+
 ## [0.9.10-beta] 2025-10-31
 
 ---
