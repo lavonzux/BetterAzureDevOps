@@ -458,19 +458,21 @@ const Actions = {
             let contentDivs = node.querySelector('div.comment-content').childNodes;
 
             // DevOps' editor sometimes wrap the description in another div
-            if (contentDivs.length === 1 && contentDivs[0].localName === 'DIV') {
+            if (contentDivs.length === 1 && contentDivs[0].localName === 'div') {
                 contentDivs = contentDivs[0].childNodes;
             }
 
+            const elementNodes = [...contentDivs].filter(i => i.nodeType === Node.ELEMENT_NODE || i.nodeType === Node.TEXT_NODE);
+
             const shrinkableDivs = [];
             let noFirstPureTextNode = true;
-            for (const contentDiv of contentDivs) {
-                if (noFirstPureTextNode && this.isPureTextElement(contentDiv)) {
+            for (const elementContent of elementNodes) {
+                if (noFirstPureTextNode && this.isPureTextElement(elementContent)) {
                     noFirstPureTextNode = false;
                     continue;
                 }
-                contentDiv.classList.add('my-shrinkable');
-                shrinkableDivs.push(contentDiv);
+                elementContent.classList.add('my-shrinkable');
+                shrinkableDivs.push(elementContent);
             }
 
             // Remove the first one if really no any pure text div
